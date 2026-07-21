@@ -1,6 +1,6 @@
 # NEXT ACTION
 
-**Phase:** training_pipeline_built (trainer + atomic checkpoints + resume test done; 67 tests pass)
+**Phase:** scope_locked (training+artifacts+stage-configs done; SCOPE_LOCK.json written; 67 tests pass)
 
 **Process running?** YES — `build_datasets_full` (CPU tokenization, tmux `dbuild`, pid 1100073,
 NOT GPU). Log: `logs/build_datasets_20260721T133614Z.log`. Output:
@@ -27,21 +27,27 @@ for HF/data ops.
 - Atomic ckpt writer: analysis (bf16 safetensors) + resumable (fp32 model+opt+rng+cursor in
   training_state.pt); tmp->fsync->checksum->load-test->rename; append-only inventory.
 
+**DONE since last:** stage configs frozen (configs/stage{1,2,3}); storage bench (analysis 310.6MB,
+resumable 1850MB) -> STORAGE_PLAN.md; FEASIBILITY.md gate PASS; SCOPE_LOCK.json (scope_hash ca992877,
+5 runs music-300m_lambda-{0.0..1.0}); run_queue + runs populated in experiment_state.
+
 **Next exact action (fresh session):**
-1. `cat state/experiment_state.json state/NEXT_ACTION.md`; `pytest tests/ -q` (expect 67 pass).
-2. Freeze stage configs: `configs/stage1/music.json`, `configs/stage2/music.json`,
-   `configs/stage3/chempile.json` as StageConfig JSON (see schemas.StageConfig). Stage1/3 LOCAL
-   (Stage1: peak 5e-4/min 5e-5/warmup ~1000/gbs 512/WD 0.1/max=per-lambda total; Stage3: lr 5e-5/
-   200M/gbs match S2); Stage2 provisional (LR5e-4 db0 gbs480 warmup500 WD0.1 minLR5e-5 max2B ES p3)
-   pending lambda=0 pilot. Record in DECISIONS.
-3. Storage+ckpt-size bench (GPU free; build_datasets is CPU): build real 135M init, write 1 analysis
-   + 1 resumable ckpt via artifacts.checkpoint.write_checkpoint, measure bytes -> docs/STORAGE_PLAN.md;
-   finalize docs/COMPUTE_PLAN.md + reports/FEASIBILITY.md (21-day / storage gate; BLOCKED.md if fails).
-4. Orchestration `src/j_pretrain/orchestration/`: run DAG, exclusive GPU lock, tmux durable runner,
-   process_registry/run_queue.json, resume-detection, per-run completion audit. scripts/verify_completion.py.
-5. PRETRAIN_READINESS_AUDIT (fresh-context subagent) -> resolve criticals -> state/SCOPE_LOCK.json.
-6. When build_datasets.py EXIT_CODE=0: build probes (data/probes.py) + record dataset_manifest_hashes
-   -> save permanent init ckpt -> launch Stage 1 (lambda=0 first) detached via orchestrator.
+1. `cat state/experiment_state.json state/NEXT_ACTION.md state/SCOPE_LOCK.json`; `pytest tests/ -q` (67).
+2. Build `src/j_pretrain/orchestration/`: (a) run DAG per RunSpec (stage1->2->3, lambda=0 stage1 feeds
+   ONLY lambda=0), (b) exclusive GPU lock file (state/gpu.lock w/ pid+staleness detect), (c) tmux
+   durable runner launching ONE stage at a time via env python, (d) state/run_queue.json + update
+   process_registry.json, (e) resume-detection (skip validated artifacts; validate config+lineage
+   hashes; never restart healthy run), (f) retry transient <=3 then failed_blocked. A stage driver
+   that wires Trainer + checkpoint schedules (schedule.crossed_*) + eval + wandb (entity ametind-o,
+   proj j-pretrain, run=run_id, group by stage/lambda) + inventory.record_checkpoint.
+3. `scripts/verify_completion.py` — deterministic, machine-readable, nonzero on any unmet criterion
+   (see mission "Completion verifier" list). Writes reports/completion_verification.json + summary.
+4. Per-run completion audit fn (config hash match, lineage, token counts, ckpts load, metrics complete).
+5. PRETRAIN_READINESS_AUDIT via fresh-context subagent -> reports/PRETRAIN_READINESS_AUDIT.md; resolve
+   criticals BEFORE Stage 1.
+6. When build_datasets.py EXIT_CODE=0: build probes (data/probes.py, first 256 val windows/corpus) +
+   record dataset_manifest_hashes in experiment_state -> save permanent init ckpt (seed 1234, shared
+   across all 5 stage1 runs) -> launch Stage 1 lambda=0 first, detached via orchestrator.
 
 **Must NOT repeat:** preflight, env, spec, benchmark, config/model, data pipeline+tests, tokenizer
 freeze, revision pin, DATA_AUDIT, training+artifacts modules+tests, resume test (all done).

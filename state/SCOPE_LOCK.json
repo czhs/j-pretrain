@@ -1,0 +1,115 @@
+{
+  "locked": true,
+  "locked_at_utc": "2026-07-21T16:10:00Z",
+  "scope_hash": "ca992877cf388153d4eb02896c252bc0fddf8291a4b7e0c18bc44cc1252256cc",
+  "authorization": "User-authorized reduced Fig 3a (300M subset only) per mission document; this is Fig 3a (early exposure), NOT Fig 3b (compute-matched).",
+  "immutability": "Once locked, immutable unless the user explicitly authorizes a change, or one of the mission's 4 permitted triggers (official-materials scope differs / dataset inaccessible / storage insufficient / hardware-software blocker) occurs AND is documented here BEFORE real training resumes.",
+  "disclosed_reductions": [
+    "Only the 300M MusicPile subset is reproduced (paper Fig 3a sweeps 30M/150M/300M). Do NOT add sizes to 'complete' the grid.",
+    "One seed per condition (one-seed reproduction; no invented confidence intervals).",
+    "Several Stage-1/2/3 optimizer knobs are LOCAL_REPRODUCTION_CHOICE (no official author code found). Stage-2 fixed Fig-3a triple is provisional pending a lambda=0 pilot."
+  ],
+  "feasibility_gate": {
+    "wall_clock": "PASS (~8 d compile / ~14-16 d eager < 21 d)",
+    "storage": "PASS (~308 GB with headroom < 581 GB free)",
+    "reference": "reports/FEASIBILITY.md"
+  },
+  "scope": {
+    "schema": "scope_lock/v1",
+    "figure": "3a",
+    "not_figure": "3b",
+    "experiment": "music",
+    "subset_sizes_tokens": [
+      300000000
+    ],
+    "lambda_grid": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
+    "seed": 1234,
+    "stage1_c4_budget_tokens": 8700000000,
+    "lambda_policy": "ADD",
+    "stage2_max_tokens": 2000000000,
+    "stage2_full_subset_every_lambda": true,
+    "stage3_tokens": 200000000,
+    "stage3_lr": 5e-05,
+    "n_stage1_runs": 5,
+    "n_stage23_conditions": 5,
+    "model": "SmolLM2-135M",
+    "datasets": {
+      "pre": "C4",
+      "post": "MusicPile",
+      "ft": "ChemPile"
+    }
+  },
+  "runs": [
+    {
+      "run_id": "music-300m_lambda-0.0",
+      "experiment": "music",
+      "subset_tokens": 300000000,
+      "lambda": 0.0,
+      "seed": 1234,
+      "stages": [
+        "stage1",
+        "stage2",
+        "stage3"
+      ],
+      "status": "planned"
+    },
+    {
+      "run_id": "music-300m_lambda-0.25",
+      "experiment": "music",
+      "subset_tokens": 300000000,
+      "lambda": 0.25,
+      "seed": 1234,
+      "stages": [
+        "stage1",
+        "stage2",
+        "stage3"
+      ],
+      "status": "planned"
+    },
+    {
+      "run_id": "music-300m_lambda-0.5",
+      "experiment": "music",
+      "subset_tokens": 300000000,
+      "lambda": 0.5,
+      "seed": 1234,
+      "stages": [
+        "stage1",
+        "stage2",
+        "stage3"
+      ],
+      "status": "planned"
+    },
+    {
+      "run_id": "music-300m_lambda-0.75",
+      "experiment": "music",
+      "subset_tokens": 300000000,
+      "lambda": 0.75,
+      "seed": 1234,
+      "stages": [
+        "stage1",
+        "stage2",
+        "stage3"
+      ],
+      "status": "planned"
+    },
+    {
+      "run_id": "music-300m_lambda-1.0",
+      "experiment": "music",
+      "subset_tokens": 300000000,
+      "lambda": 1.0,
+      "seed": 1234,
+      "stages": [
+        "stage1",
+        "stage2",
+        "stage3"
+      ],
+      "status": "planned"
+    }
+  ]
+}
