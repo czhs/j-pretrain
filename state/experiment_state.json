@@ -1,9 +1,9 @@
 {
-  "state_version": 1,
+  "state_version": 2,
   "schema_version": 1,
-  "updated_at_utc": "2026-07-21T12:38:00Z",
-  "current_phase": "preflight_and_spec_extraction",
-  "spec_hash": null,
+  "updated_at_utc": "2026-07-21T13:14:40Z",
+  "current_phase": "spec_frozen_impl_pending",
+  "spec_hash": "60ee3bde7d45a919d89aac2ca4ccdac1047961520a3c567d25ee822af6a5e313",
   "scope_hash": null,
   "environment_hash": null,
   "dataset_manifest_hashes": {},
@@ -19,17 +19,51 @@
     "disk_free_gb": 590,
     "disk_use_pct": 83,
     "tools_present": ["tmux", "python", "git", "rg", "jq"],
-    "python_env_ready": false
+    "python_env_ready": true
+  },
+  "env": {
+    "conda_env": "jpre",
+    "python": "3.11.15",
+    "torch": "2.5.1+cu121",
+    "transformers": "4.46.3",
+    "datasets": "3.1.0",
+    "tokenizers": "0.20.3",
+    "safetensors": "0.4.5",
+    "wandb": "0.18.7"
+  },
+  "spec": {
+    "extracted": true,
+    "audited": true,
+    "audit_result": "11/11 confirmed, 0 errors (reports/SPEC_AUDIT.md)",
+    "model": "SmolLM2-135M (30L/576h/9qh/3kvh GQA/1536mlp/49152vocab/rope1e5/rms1e-5/tied/nobias/init0.0416667/silu)",
+    "param_count_local_build": 134520000,
+    "stage1_c4_tokens_per_run": 8700000000,
+    "lambda_grid": [0, 0.25, 0.5, 0.75, 1.0],
+    "d_post_tokens": 300000000,
+    "lambda_policy": "ADD: C4 fixed 8.7B + lambda*300M MusicPile interleaved (not compute-matched, not C4-replacement)",
+    "stage2_max_tokens": 2000000000,
+    "stage2_fixed_config_status": "LOCAL provisional (LR5e-4/dropout0/batch480/warmup500/WD0.1/minLR5e-5); finalize via lambda=0 pilot",
+    "stage3_tokens": 200000000,
+    "stage3_lr": 5e-05
+  },
+  "benchmark_preliminary": {
+    "seq_len": 1024,
+    "eager_mb8_tok_s": 52497,
+    "compile_mb8_tok_s": 94255,
+    "compile_mb8_reserved_gb": 9.65,
+    "exec_default": "torch.compile(default)+bf16+SDPA+fused_AdamW, eager fallback",
+    "microbatch_default": 8,
+    "feasibility_preliminary": "PASS (~7d compile / ~12-16d eager incl overhead; both < 21d gate)"
   },
   "run_queue": [],
   "runs": {},
   "retry_counts": {},
   "active_processes": [],
   "latest_checkpoints": {},
-  "completed_milestones": [],
+  "completed_milestones": ["preflight", "env_built", "spec_extracted", "spec_audited", "throughput_benchmark_preliminary"],
   "metrics": {},
   "disk_usage": {"root_avail_gb": 590, "root_use_pct": 83},
   "backup_status": "none_configured",
-  "git": {"branch": "main", "remote": "git@github.com:czhs/j-pretrain.git", "last_commit": "f32975c"},
-  "next_action": "Extract paper spec (docs/PAPER_SPEC.md) via subagent + search for official author code; set up pinned Python env; then dataset pipeline."
+  "git": {"branch": "main", "remote": "git@github.com:czhs/j-pretrain.git", "last_commit": "7f60780"},
+  "next_action": "Implement typed codebase skeleton (src/j_pretrain: config/model/data/training/evaluation/orchestration/artifacts/analysis) + configs + tests. Start with model builder + tokenizer freeze + config hashing, with unit tests. Then dataset pipeline. See state/NEXT_ACTION.md."
 }
