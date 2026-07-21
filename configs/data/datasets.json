@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "frozen": true,
+  "seq_len": 1024,
+  "token_dtype": "uint16",
+  "tokenizer": {
+    "id": "HuggingFaceTB/SmolLM2-135M",
+    "revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2",
+    "local_dir": "configs/data/tokenizer",
+    "vocab_size": 49152,
+    "eos_id": 0,
+    "bos_id": 0,
+    "pad_id": null,
+    "dir_sha256": "b4ec3f7868b423ca67dade52f594c07c7a4f17c60f07584415b6e263a1a301c4",
+    "provenance": "INFERRED_FROM_SMOLLM2"
+  },
+  "budgets": {
+    "stage1_c4_tokens": 8700000000,
+    "d_post_tokens": 300000000,
+    "stage3_chempile_tokens": 200000000,
+    "note": "Token budgets are floored to whole seq_len windows at build time; exact counts recorded in each packed manifest."
+  },
+  "split_policy": {
+    "val_pm": 5,
+    "tune_pm": 5,
+    "description": "Per-mille document-hash bands: val=[0,5), tune=[5,10), train=[10,1000). C4 also has a native validation split used for eval; MusicPile/ChemPile carve val by hash. Disjoint by construction."
+  },
+  "sources": {
+    "c4": {
+      "role": "D_pre",
+      "hf_path": "allenai/c4",
+      "hf_name": "en",
+      "revision": "1588ec454efa1a09f29cd18ddd04fe05fc8653a2",
+      "text_key": "text",
+      "id_key": "url",
+      "streaming": true,
+      "native_val_split": "validation",
+      "provenance": "EXPLICIT_PAPER (corpus); HF id INFERRED"
+    },
+    "musicpile": {
+      "role": "D_post",
+      "hf_path": "m-a-p/MusicPile",
+      "hf_name": null,
+      "revision": "5930bd7199ddead76ab540901e2187ea4e5fc6a7",
+      "text_key": "text",
+      "id_key": "id",
+      "streaming": true,
+      "native_val_split": null,
+      "provenance": "EXPLICIT_PAPER (corpus); HF id INFERRED"
+    },
+    "chempile": {
+      "role": "D_ft",
+      "hf_path": "jablonkagroup/chempile-education",
+      "revision": "c653c3c7bbf599030b80f117b6748ebae406043b",
+      "configs": [
+        "LibreText_Chemistry-default",
+        "mit-ocw-lecture-transcripts-default",
+        "us-olympiad-problems-default",
+        "youtube-transcripts-as-lectures-default"
+      ],
+      "config_decision": "Use ALL 4 education configs concatenated (deterministic config order) to assemble the chemistry FT corpus; paper only says 'ChemPile / chemistry-domain, 0.3B'. LOCAL_REPRODUCTION_CHOICE.",
+      "text_key": "text",
+      "id_key": null,
+      "streaming": true,
+      "native_val_split": null,
+      "provenance": "EXPLICIT_PAPER (corpus); HF id + config set INFERRED/LOCAL"
+    }
+  },
+  "probes": {
+    "n_windows_per_corpus": 256,
+    "source_split": "val",
+    "note": "First 256 val windows per corpus, frozen token IDs; same probes for every checkpoint."
+  }
+}

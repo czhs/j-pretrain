@@ -1,13 +1,19 @@
 {
   "state_version": 2,
   "schema_version": 1,
-  "updated_at_utc": "2026-07-21T13:40:00Z",
-  "current_phase": "impl_foundation_done",
+  "updated_at_utc": "2026-07-21T15:10:00Z",
+  "current_phase": "data_pipeline_built",
   "spec_hash": "60ee3bde7d45a919d89aac2ca4ccdac1047961520a3c567d25ee822af6a5e313",
   "scope_hash": null,
   "environment_hash": null,
-  "dataset_manifest_hashes": {},
-  "artifact_root": null,
+  "dataset_manifest_hashes": {
+    "tokenizer_dir_sha256": "b4ec3f7868b423ca67dade52f594c07c7a4f17c60f07584415b6e263a1a301c4",
+    "c4_revision": "1588ec454efa1a09f29cd18ddd04fe05fc8653a2",
+    "musicpile_revision": "5930bd7199ddead76ab540901e2187ea4e5fc6a7",
+    "chempile_revision": "c653c3c7bbf599030b80f117b6748ebae406043b",
+    "note": "Per-(source,split) shard manifests + hashes produced when scripts/build_datasets.py runs (not yet executed at full scale)."
+  },
+  "artifact_root": "/home/hshi-j-4090/Desktop/j-pretrain-artifacts",
   "preflight": {
     "paper_readable": true,
     "git_branch_ok": true,
@@ -60,7 +66,7 @@
   "retry_counts": {},
   "active_processes": [],
   "latest_checkpoints": {},
-  "completed_milestones": ["preflight", "env_built", "spec_extracted", "spec_audited", "throughput_benchmark_preliminary", "package_scaffold", "config_system", "model_builder_tested_12tests", "data_access_validated"],
+  "completed_milestones": ["preflight", "env_built", "spec_extracted", "spec_audited", "throughput_benchmark_preliminary", "package_scaffold", "config_system", "model_builder_tested_12tests", "data_access_validated", "tokenizer_frozen", "dataset_revisions_pinned", "data_pipeline_built_tested_29tests", "data_driver_smoke_validated", "DATA_AUDIT_written"],
   "data_access": {
     "python_invocation": "/home/hshi-j-4090/miniconda3/envs/jpre/bin/python (NOT conda run)",
     "c4": {"path": "allenai/c4", "name": "en", "text_key": "text", "streaming_ok": true},
@@ -72,5 +78,5 @@
   "disk_usage": {"root_avail_gb": 590, "root_use_pct": 83},
   "backup_status": "none_configured",
   "git": {"branch": "main", "remote": "git@github.com:czhs/j-pretrain.git", "last_commit": "7f60780"},
-  "next_action": "Implement typed codebase skeleton (src/j_pretrain: config/model/data/training/evaluation/orchestration/artifacts/analysis) + configs + tests. Start with model builder + tokenizer freeze + config hashing, with unit tests. Then dataset pipeline. See state/NEXT_ACTION.md."
+  "next_action": "Build training + artifacts modules: resumable trainer (AdamW b1=.9 b2=.95 clip1.0 bf16), atomic checkpoint writer (analysis + resumable classes), append-only inventory, RNG+dataloader-cursor state, + deterministic resume integration test. THEN orchestration (DAG, GPU lock, tmux runner) + storage/checkpoint-size benchmark -> STORAGE_PLAN.md + FEASIBILITY.md. THEN PRETRAIN_READINESS_AUDIT -> SCOPE_LOCK.json -> launch full build_datasets.py detached -> Stage 1. See state/NEXT_ACTION.md."
 }
