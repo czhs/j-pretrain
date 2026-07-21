@@ -1,0 +1,56 @@
+# === Large / non-committable artifacts ===
+artifacts/
+!artifacts/.gitkeep
+!artifacts/checkpoint_inventory.jsonl
+!artifacts/run_artifact_inventory.jsonl
+!artifacts/file_checksums.sha256
+!artifacts/storage_usage.jsonl
+!artifacts/backup_status.jsonl
+!artifacts/probes/probe_manifest.json
+
+# model weights / optimizer / tokenized data
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.npy
+*.npz
+*.arrow
+*.mmap
+*.idx
+
+# datasets / caches
+data_cache/
+hf_cache/
+tokenized/
+*.parquet
+
+# logs (bulk); keep small structured summaries explicitly
+logs/
+wandb/
+*.log
+!logs/.gitkeep
+
+# tensorboard
+events.out.tfevents.*
+runs/tb/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# env / secrets
+.env
+*.key
+*.pem
+
+# temp checkpoint writes
+*.tmp
+*.tmp/
+tmp_*/
