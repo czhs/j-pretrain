@@ -115,6 +115,26 @@ def test_stage_driver_unique_ids_no_overwrite(tmp_path):
     assert len(ids) == len(set(ids)), "checkpoint ids must be unique (no overwrite)"
 
 
+def test_inventory_dir_decoupled_from_payload_root(tmp_path):
+    """Inventory goes to inventory_dir (committed repo/artifacts); payloads to artifact_root."""
+    payload_root = tmp_path / "external"
+    inv_dir = tmp_path / "repo_artifacts"
+    inv_dir.mkdir()
+    drv, tr, _ = _driver(payload_root, "stage3", "chempile", total_steps=2,
+                         a_marks=[], r_marks=[])
+    drv.inventory_dir = inv_dir  # simulate orchestrator wiring
+    drv.run()
+    # inventory written under inv_dir, not payload_root
+    assert (inv_dir / inv.CHECKPOINT_INVENTORY).exists()
+    assert not (payload_root / inv.CHECKPOINT_INVENTORY).exists()
+    recs = [r for r in inv.read_inventory(inv_dir / inv.CHECKPOINT_INVENTORY)
+            if r["op"] == "create"]
+    assert recs
+    # rel_path locates the checkpoint under payload_root
+    for r in recs:
+        assert (payload_root / r["rel_path"]).exists()
+
+
 def test_stage2_best_and_early_stop(tmp_path):
     # primary_val set + tiny patience: after best plateaus, early-stop fires
     drv, tr, root = _driver(tmp_path, "stage2", "mp", total_steps=20,

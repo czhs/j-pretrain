@@ -71,13 +71,18 @@ class StageDriver:
         analysis_token_marks: Optional[list[int]] = None,
         resumable_token_marks: Optional[list[int]] = None,
         primary_val: Optional[str] = None,   # eval key used for best/early-stop (stage2)
+        inventory_dir: Optional[str | Path] = None,  # committed repo/artifacts (small records)
     ):
         self.tr = trainer
         self.ctx = ctx
         self.cfg = stage_cfg
         self.model_config_dict = model_config_dict
+        # Large checkpoint PAYLOADS -> artifact_root (may be external); small append-only
+        # INVENTORY -> inventory_dir (committed repo/artifacts). rel_path stays relative to
+        # artifact_root so a record always locates its checkpoint.
         self.ckpt_root = Path(artifact_root) / "checkpoints"
         self.artifact_root = Path(artifact_root)
+        self.inventory_dir = Path(inventory_dir) if inventory_dir is not None else Path(artifact_root)
         self.val_sets = dict(val_sets)
         self.log = logger
         self.now = now_fn
@@ -128,7 +133,7 @@ class StageDriver:
                                     self.model_config_dict, training_state=tstate)
         inv.record_checkpoint(meta, rel_path=str(final.relative_to(self.artifact_root)),
                               byte_size=_dir_bytes(final), created_at_utc=meta.created_at_utc,
-                              inventory_path=self.artifact_root / inv.CHECKPOINT_INVENTORY)
+                              inventory_path=self.inventory_dir / inv.CHECKPOINT_INVENTORY)
         return cid
 
     def _write_both(self, milestones: list[str], val_metrics: dict[str, float]) -> str:
