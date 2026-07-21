@@ -1,0 +1,364 @@
+{
+  "checks": [
+    {
+      "category": "scope",
+      "detail": "state/SCOPE_LOCK.json present and locked",
+      "mandatory": true,
+      "name": "scope_lock_exists",
+      "ok": true
+    },
+    {
+      "category": "scope",
+      "detail": "runs=['music-300m_lambda-0.0', 'music-300m_lambda-0.25', 'music-300m_lambda-0.5', 'music-300m_lambda-0.75', 'music-300m_lambda-1.0']",
+      "mandatory": true,
+      "name": "five_runs_present",
+      "ok": true
+    },
+    {
+      "category": "scope",
+      "detail": "0/5 runs have all 3 stages complete",
+      "mandatory": true,
+      "name": "all_locked_runs_complete",
+      "ok": false
+    },
+    {
+      "category": "scope",
+      "detail": "manifest run_ids cover 5 locked runs (have 0)",
+      "mandatory": true,
+      "name": "run_manifest_covers_locked",
+      "ok": false
+    },
+    {
+      "category": "config",
+      "detail": "",
+      "mandatory": true,
+      "name": "frozen_paper_spec",
+      "ok": true
+    },
+    {
+      "category": "config",
+      "detail": "configs/model/smollm2-135m.json",
+      "mandatory": true,
+      "name": "frozen_config_model",
+      "ok": true
+    },
+    {
+      "category": "config",
+      "detail": "configs/stage1/music.json",
+      "mandatory": true,
+      "name": "frozen_config_stage1",
+      "ok": true
+    },
+    {
+      "category": "config",
+      "detail": "configs/stage2/music.json",
+      "mandatory": true,
+      "name": "frozen_config_stage2",
+      "ok": true
+    },
+    {
+      "category": "config",
+      "detail": "configs/stage3/chempile.json",
+      "mandatory": true,
+      "name": "frozen_config_stage3",
+      "ok": true
+    },
+    {
+      "category": "config",
+      "detail": "configs/data/datasets.json",
+      "mandatory": true,
+      "name": "frozen_config_data",
+      "ok": true
+    },
+    {
+      "category": "config",
+      "detail": "",
+      "mandatory": true,
+      "name": "spec_hash_recorded",
+      "ok": true
+    },
+    {
+      "category": "config",
+      "detail": "",
+      "mandatory": true,
+      "name": "scope_hash_recorded",
+      "ok": true
+    },
+    {
+      "category": "config",
+      "detail": "no checkpoints yet",
+      "mandatory": true,
+      "name": "ckpts_record_config_and_git",
+      "ok": false
+    },
+    {
+      "category": "dataset",
+      "detail": "{'c4_revision': '1588ec454efa1a09f29cd18ddd04fe05fc8653a2', 'musicpile_revision': '5930bd7199ddead76ab540901e2187ea4e5fc6a7', 'chempile_revision': 'c653c3c7bbf599030b80f117b6748ebae406043b'}",
+      "mandatory": true,
+      "name": "dataset_revisions_recorded",
+      "ok": true
+    },
+    {
+      "category": "dataset",
+      "detail": "0 (source,split) manifests under /home/hshi-j-4090/Desktop/j-pretrain-artifacts/datasets",
+      "mandatory": true,
+      "name": "tokenized_manifests_exist",
+      "ok": false
+    },
+    {
+      "category": "dataset",
+      "detail": "no MusicPile train manifest yet",
+      "mandatory": true,
+      "name": "musicpile_pool_covers_300M",
+      "ok": false
+    },
+    {
+      "category": "dataset",
+      "detail": "/home/hshi-j-4090/Desktop/j-pretrain-artifacts/probes/probe_manifest.json",
+      "mandatory": true,
+      "name": "frozen_probe_manifest",
+      "ok": false
+    },
+    {
+      "category": "checkpoints",
+      "detail": "",
+      "mandatory": true,
+      "name": "inventory_exists",
+      "ok": false
+    },
+    {
+      "category": "checkpoints",
+      "detail": "no checkpoints yet",
+      "mandatory": true,
+      "name": "all_ckpts_present_checksummed_validated",
+      "ok": false
+    },
+    {
+      "category": "checkpoints",
+      "detail": "no checkpoints yet",
+      "mandatory": true,
+      "name": "init_snapshot_when_started",
+      "ok": false
+    },
+    {
+      "category": "results",
+      "detail": "/home/hshi-j-4090/Desktop/j-pretrain/results/results.csv",
+      "mandatory": true,
+      "name": "results_csv_exists",
+      "ok": false
+    },
+    {
+      "category": "results",
+      "detail": "no result rows yet",
+      "mandatory": true,
+      "name": "results_one_row_per_condition",
+      "ok": false
+    },
+    {
+      "category": "results",
+      "detail": "no result rows yet",
+      "mandatory": true,
+      "name": "results_have_core_metrics",
+      "ok": false
+    },
+    {
+      "category": "results",
+      "detail": "figures/figure3a_replication.png",
+      "mandatory": true,
+      "name": "figure_png",
+      "ok": false
+    },
+    {
+      "category": "results",
+      "detail": "figures/figure3a_replication.pdf",
+      "mandatory": true,
+      "name": "figure_pdf",
+      "ok": false
+    },
+    {
+      "category": "tests_audits",
+      "detail": "-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html",
+      "mandatory": true,
+      "name": "tests_pass",
+      "ok": true
+    },
+    {
+      "category": "tests_audits",
+      "detail": "",
+      "mandatory": true,
+      "name": "data_audit_exists",
+      "ok": true
+    },
+    {
+      "category": "tests_audits",
+      "detail": "",
+      "mandatory": true,
+      "name": "pretrain_readiness_audit_exists",
+      "ok": false
+    },
+    {
+      "category": "tests_audits",
+      "detail": "",
+      "mandatory": true,
+      "name": "final_audit_exists",
+      "ok": false
+    },
+    {
+      "category": "tests_audits",
+      "detail": "no AUDIT.md yet",
+      "mandatory": true,
+      "name": "final_audit_no_unresolved_critical",
+      "ok": false
+    },
+    {
+      "category": "docs",
+      "detail": "docs/PAPER_SPEC.md",
+      "mandatory": true,
+      "name": "doc_docs_PAPER_SPEC.md",
+      "ok": true
+    },
+    {
+      "category": "docs",
+      "detail": "docs/REFERENCES.md",
+      "mandatory": true,
+      "name": "doc_docs_REFERENCES.md",
+      "ok": true
+    },
+    {
+      "category": "docs",
+      "detail": "docs/COMPUTE_PLAN.md",
+      "mandatory": true,
+      "name": "doc_docs_COMPUTE_PLAN.md",
+      "ok": true
+    },
+    {
+      "category": "docs",
+      "detail": "docs/STORAGE_PLAN.md",
+      "mandatory": true,
+      "name": "doc_docs_STORAGE_PLAN.md",
+      "ok": true
+    },
+    {
+      "category": "docs",
+      "detail": "docs/DATA_AUDIT.md",
+      "mandatory": true,
+      "name": "doc_docs_DATA_AUDIT.md",
+      "ok": true
+    },
+    {
+      "category": "docs",
+      "detail": "docs/FAILURE_PLAYBOOK.md",
+      "mandatory": true,
+      "name": "doc_docs_FAILURE_PLAYBOOK.md",
+      "ok": false
+    },
+    {
+      "category": "docs",
+      "detail": "docs/FAILURES.md",
+      "mandatory": true,
+      "name": "doc_docs_FAILURES.md",
+      "ok": false
+    },
+    {
+      "category": "docs",
+      "detail": "docs/HANDOFF.md",
+      "mandatory": true,
+      "name": "doc_docs_HANDOFF.md",
+      "ok": false
+    },
+    {
+      "category": "docs",
+      "detail": "reports/FINAL_REPORT.md",
+      "mandatory": true,
+      "name": "doc_reports_FINAL_REPORT.md",
+      "ok": false
+    },
+    {
+      "category": "docs",
+      "detail": "reports/REPRODUCIBILITY.md",
+      "mandatory": true,
+      "name": "doc_reports_REPRODUCIBILITY.md",
+      "ok": false
+    },
+    {
+      "category": "docs",
+      "detail": "reports/COMPUTE_ACCOUNTING.md",
+      "mandatory": true,
+      "name": "doc_reports_COMPUTE_ACCOUNTING.md",
+      "ok": false
+    },
+    {
+      "category": "docs",
+      "detail": "reports/STORAGE_ACCOUNTING.md",
+      "mandatory": true,
+      "name": "doc_reports_STORAGE_ACCOUNTING.md",
+      "ok": false
+    },
+    {
+      "category": "docs",
+      "detail": "reports/AUDIT.md",
+      "mandatory": true,
+      "name": "doc_reports_AUDIT.md",
+      "ok": false
+    },
+    {
+      "category": "preservation",
+      "detail": "",
+      "mandatory": true,
+      "name": "checkpoint_inventory_validates",
+      "ok": false
+    },
+    {
+      "category": "preservation",
+      "detail": "",
+      "mandatory": true,
+      "name": "run_artifact_inventory",
+      "ok": false
+    },
+    {
+      "category": "preservation",
+      "detail": "",
+      "mandatory": true,
+      "name": "storage_usage_history",
+      "ok": false
+    },
+    {
+      "category": "preservation",
+      "detail": "",
+      "mandatory": true,
+      "name": "backup_status_recorded",
+      "ok": false
+    },
+    {
+      "category": "git",
+      "detail": "branch=main",
+      "mandatory": true,
+      "name": "branch_main",
+      "ok": true
+    },
+    {
+      "category": "git",
+      "detail": "origin=git@github.com:czhs/j-pretrain.git",
+      "mandatory": true,
+      "name": "remote_correct",
+      "ok": true
+    },
+    {
+      "category": "git",
+      "detail": "4 tracked-file changes (excl logs/wandb)",
+      "mandatory": true,
+      "name": "working_tree_clean",
+      "ok": false
+    },
+    {
+      "category": "git",
+      "detail": "local=93f4fb4c origin/main=93f4fb4c",
+      "mandatory": true,
+      "name": "head_pushed_to_origin",
+      "ok": true
+    }
+  ],
+  "n_checks": 51,
+  "n_failed_mandatory": 30,
+  "passed": false
+}
