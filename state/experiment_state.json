@@ -1,8 +1,8 @@
 {
   "state_version": 2,
   "schema_version": 1,
-  "updated_at_utc": "2026-07-21T16:35:00Z",
-  "current_phase": "orchestration_core_built",
+  "updated_at_utc": "2026-07-21T16:55:00Z",
+  "current_phase": "verifier_and_docs_built",
   "spec_hash": "60ee3bde7d45a919d89aac2ca4ccdac1047961520a3c567d25ee822af6a5e313",
   "scope_hash": "ca992877cf388153d4eb02896c252bc0fddf8291a4b7e0c18bc44cc1252256cc",
   "environment_hash": null,
@@ -85,6 +85,6 @@
   "metrics": {},
   "disk_usage": {"root_avail_gb": 590, "root_use_pct": 83},
   "backup_status": "none_configured",
-  "git": {"branch": "main", "remote": "git@github.com:czhs/j-pretrain.git", "last_commit": "a0c785c"},
+  "git": {"branch": "main", "remote": "git@github.com:czhs/j-pretrain.git", "last_commit": "7bdd45f"},
   "next_action": "Orchestration core DONE (gpu lock + DAG + stage driver + metrics; 82 tests). NEXT: (1) orchestrator entrypoint j_pretrain.orchestration.run (reads state+scope, dag.next_node, acquire GPU lock, build REAL PackedDatasets+model-from-parent-ckpt, run StageDriver, update experiment_state/process_registry, tmux-detached, resume-detect). (2) scripts/verify_completion.py (full mandatory-criteria checklist -> reports/completion_verification.json, nonzero on unmet). (3) per-run completion audit fn. (4) PRETRAIN_READINESS_AUDIT subagent -> reports/PRETRAIN_READINESS_AUDIT.md; resolve criticals. (5) When build_datasets.py (pid 1100073) EXIT_CODE=0: build probes + record dataset_manifest_hashes + save shared init ckpt -> launch Stage 1 lambda=0 first. See state/NEXT_ACTION.md."
 }
