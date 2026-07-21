@@ -1,8 +1,10 @@
 # COMPUTE_PLAN.md
 
-Status: **PRELIMINARY** (early fail-fast benchmark). Final numbers require the real training loop
-(data loader, checkpoint serialization, eval) and will be folded into `reports/FEASIBILITY.md`
-before scope lock. Recorded here so the feasibility direction is durable.
+Status: **CONFIRMED** for the feasibility gate. Throughput numbers below are from the real 135M
+benchmark; checkpoint-serialization sizes/overhead were subsequently measured
+(`scripts/bench_storage.py`, see docs/STORAGE_PLAN.md) and the combined wall-clock + storage gate is
+decided in `reports/FEASIBILITY.md` (**PASS**, ~8 d compile / ~14–16 d eager; ~308 GB < 581 GB free).
+Real end-to-end tok/s will be re-measured from the first Stage-1 run's metrics and reconciled here.
 
 ## Hardware (see docs/ENVIRONMENT.md)
 RTX 4090 24 GB (24564 MiB), driver 535.309.01, CUDA driver 12.2. i9-13900K (32 threads), 62 GiB RAM.

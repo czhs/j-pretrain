@@ -79,6 +79,6 @@
   "metrics": {},
   "disk_usage": {"root_avail_gb": 590, "root_use_pct": 83},
   "backup_status": "none_configured",
-  "git": {"branch": "main", "remote": "git@github.com:czhs/j-pretrain.git", "last_commit": "8405774"},
+  "git": {"branch": "main", "remote": "git@github.com:czhs/j-pretrain.git", "last_commit": "88c4763"},
   "next_action": "Training + artifacts modules DONE (67 tests pass incl deterministic resume). NEXT: (1) freeze stage configs configs/stage{1,2,3}/*.json (StageConfig JSON; Stage1/3 LOCAL, Stage2 provisional-pending-pilot). (2) Storage+ckpt-size benchmark: build real 135M init, serialize 1 analysis + 1 resumable ckpt, measure bytes -> docs/STORAGE_PLAN.md + finalize docs/COMPUTE_PLAN + reports/FEASIBILITY.md (21-day/storage gate). (3) Orchestration: DAG, GPU lock, tmux durable runner, process_registry/run_queue, per-run completion audit, verify_completion.py. (4) PRETRAIN_READINESS_AUDIT (subagent) -> SCOPE_LOCK.json. (5) Wait for build_datasets.py (pid 1100073, ~15h) to finish -> build probes + record dataset_manifest_hashes -> Stage 1. See state/NEXT_ACTION.md."
 }

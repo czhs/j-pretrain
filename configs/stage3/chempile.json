@@ -1,0 +1,23 @@
+{
+  "_doc": "FROZEN Stage-3 ChemPile fine-tuning config (measure L_ret/L_ft/L_pre). Fixed IDENTICALLY across every lambda; only the incoming Stage-2 checkpoint differs. Consumed by StageConfig.from_json.",
+  "_provenance_detail": "learning rate 5e-5 and the 200M-token budget are EXPLICIT_PAPER for Fig 3a (Section 4.1). Optimizer/betas/clip/precision EXPLICIT_PAPER (Table 5). LR schedule, warmup, global batch, weight decay, seed are NOT separately specified for Stage 3 -> LOCAL_REPRODUCTION_CHOICE: cosine decay with short warmup, global batch matching Stage 2 (480), WD 0.1. No early stopping on MusicPile retention (fixed 200M budget); identical ChemPile data order across conditions.",
+  "stage": "stage3",
+  "peak_lr": 5e-5,
+  "min_lr": 5e-6,
+  "warmup_steps": 100,
+  "global_batch_seqs": 480,
+  "max_tokens": 200000000,
+  "seq_len": 1024,
+  "optimizer": "adamw",
+  "beta1": 0.9,
+  "beta2": 0.95,
+  "eps": 1e-8,
+  "weight_decay": 0.1,
+  "grad_clip": 1.0,
+  "lr_schedule": "cosine",
+  "seed": 1234,
+  "eval_interval_tokens": 10000000,
+  "early_stop_patience": null,
+  "early_stop_min_delta": 0.0,
+  "provenance": "LOCAL_REPRODUCTION_CHOICE"
+}
