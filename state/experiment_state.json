@@ -7,7 +7,7 @@
   "scope_hash": "ca992877cf388153d4eb02896c252bc0fddf8291a4b7e0c18bc44cc1252256cc",
   "environment_hash": "a62ab8da1c90ff2822fb188b6845813d74c763ac389f23071827330734814aac",
   "dataset_manifest_hashes": {
-    "tokenizer_dir_sha256": "b4ec3f7868b423ca67dade52f594c07c7a4f17c60f07584415b6e263a1a301c4",
+    "tokenizer_dir_sha256": "658eb5b9c30af1ec103a499c344d1a8a97b45631a2cd8723917041bc5f1af525",
     "c4_revision": "1588ec454efa1a09f29cd18ddd04fe05fc8653a2",
     "musicpile_revision": "5930bd7199ddead76ab540901e2187ea4e5fc6a7",
     "chempile_revision": "c653c3c7bbf599030b80f117b6748ebae406043b",

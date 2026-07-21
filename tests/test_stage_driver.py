@@ -147,3 +147,39 @@ def test_stage2_best_and_early_stop(tmp_path):
     assert ("analysis", ("best",)) in classes  # a best-val checkpoint was saved
     assert ("analysis", ("restored_best",)) in classes  # restored best for stage 3
     assert result["best_val"] is not None
+
+
+def test_stage2_restored_best_reloads_best_not_terminal(tmp_path):
+    """Regression (readiness-audit MAJOR-1): restored_best must carry the best-val
+    weights, not the terminal/post-early-stop weights."""
+    drv, tr, root = _driver(tmp_path, "stage2", "mp", total_steps=8,
+                            a_marks=[], r_marks=[], primary_val="mp",
+                            eval_interval=16, es_patience=1)
+    # Scripted primary-val trajectory: incoming, then improving to a min at step 3,
+    # then a worse eval -> early stop. So best (step 3) != terminal (step 4).
+    seq = iter([9.0, 5.0, 3.0, 2.0, 7.0, 7.0, 7.0, 7.0])
+
+    def fake_eval():
+        try:
+            v = next(seq)
+        except StopIteration:
+            v = 7.0
+        return {"mp": v, "c4": 0.0, "chempile": 0.0}
+
+    drv._evaluate = fake_eval
+    drv.run()
+    assert tr.best_val == 2.0
+
+    recs = [r for r in inv.read_inventory(root / inv.CHECKPOINT_INVENTORY)
+            if r["op"] == "create" and r["checkpoint_class"] == "analysis"]
+    best = [r for r in recs if r["milestone_labels"] == ["best"]][-1]
+    rb = next(r for r in recs if r["milestone_labels"] == ["restored_best"])
+    fin = next(r for r in recs if r["milestone_labels"] == ["final"])
+    wb = ck.load_weights(root / best["rel_path"])
+    wr = ck.load_weights(root / rb["rel_path"])
+    wf = ck.load_weights(root / fin["rel_path"])
+    # restored_best == best-val weights (the fix); and differs from terminal weights
+    for k in wb:
+        assert torch.equal(wb[k], wr[k]), f"restored_best weight {k} != best-val weight"
+    assert any(not torch.equal(wr[k], wf[k]) for k in wr), \
+        "restored_best must differ from terminal/post-early-stop weights"

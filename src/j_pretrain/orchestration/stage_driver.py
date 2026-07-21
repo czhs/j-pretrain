@@ -96,6 +96,8 @@ class StageDriver:
         self._prev_eval_tokens = 0
         self._incoming_id: Optional[str] = None
         self._stopped_early = False
+        # resumable dir of the most recent best-val checkpoint (stage2), for restore.
+        self._best_resumable_dir: Optional[Path] = None
 
     # ---- token axis ------------------------------------------------------
     def _driver_tokens(self) -> int:
@@ -125,7 +127,7 @@ class StageDriver:
         )
 
     def _write(self, cls: str, milestones: list[str], val_metrics: dict[str, float],
-               resumable: bool) -> str:
+               resumable: bool) -> tuple[str, Path]:
         cid = self._ckpt_id("-".join(milestones), cls)
         meta = self._meta(cid, cls, milestones, val_metrics)
         tstate = self.tr.training_state() if resumable else None
@@ -134,13 +136,17 @@ class StageDriver:
         inv.record_checkpoint(meta, rel_path=str(final.relative_to(self.artifact_root)),
                               byte_size=_dir_bytes(final), created_at_utc=meta.created_at_utc,
                               inventory_path=self.inventory_dir / inv.CHECKPOINT_INVENTORY)
-        return cid
+        return cid, final
 
-    def _write_both(self, milestones: list[str], val_metrics: dict[str, float]) -> str:
-        """Analysis + resumable for a milestone that needs both (incoming/final/best)."""
-        a = self._write(ck.CLASS_ANALYSIS, milestones, val_metrics, resumable=False)
-        self._write(ck.CLASS_RESUMABLE, milestones, val_metrics, resumable=True)
-        return a
+    def _write_both(self, milestones: list[str], val_metrics: dict[str, float]) -> tuple[str, Path]:
+        """Analysis + resumable for a milestone that needs both (incoming/final/best).
+
+        Returns (analysis checkpoint id, resumable checkpoint dir) — the resumable dir
+        carries the exact fp32 weights, used to restore best-val state for Stage 3.
+        """
+        a_cid, _ = self._write(ck.CLASS_ANALYSIS, milestones, val_metrics, resumable=False)
+        _, r_path = self._write(ck.CLASS_RESUMABLE, milestones, val_metrics, resumable=True)
+        return a_cid, r_path
 
     # ---- evaluation ------------------------------------------------------
     def _evaluate(self) -> dict[str, float]:
@@ -150,7 +156,7 @@ class StageDriver:
     def run(self, resumed: bool = False, chunk: int = 1) -> dict:
         if not resumed:
             vm = self._evaluate()
-            self._incoming_id = self._write_both(["incoming"], vm)
+            self._incoming_id, _ = self._write_both(["incoming"], vm)
             self.log.log({"event": "incoming", "opt_step": self.tr.opt_step,
                           "driver_tokens": self._driver_tokens(), **_prefix(vm, "val")})
 
@@ -171,10 +177,20 @@ class StageDriver:
                   "driver_tokens": self._driver_tokens(),
                   "tokens": self.tr.tokens.as_dict(), "stopped_early": self._stopped_early,
                   "best_val": self.tr.best_val}
-        # stage2: restore best -> Stage 3 uses this
+        # stage2: RELOAD the best-val weights, then snapshot them as restored_best.
+        # This is θ_post (where L_im is measured) AND the Stage-3 parent, so it must be
+        # the best-validation model, NOT the terminal / post-early-stop weights.
         if self.ctx.stage == "stage2" and self.primary_val is not None:
+            if self._best_resumable_dir is not None:
+                blob = ck.load_training_state(self._best_resumable_dir)
+                self.tr.model.load_state_dict(
+                    {k: v.to(self.tr.device) for k, v in blob["model"].items()})
+            vm_best = self._evaluate()  # L_im on the restored best weights
             result["restored_best_written"] = True
-            self._write_both(["restored_best"], {self.primary_val: self.tr.best_val or float("nan")})
+            result["restored_best_val"] = vm_best.get(self.primary_val)
+            self.log.log({"event": "restored_best", "opt_step": self.tr.opt_step,
+                          **_prefix(vm_best, "val")})
+            self._write_both(["restored_best"], vm_best)
         self.log.close()
         return result
 
@@ -208,7 +224,7 @@ class StageDriver:
         if improved:
             self.tr.best_val = cur
             self.tr.no_improve_evals = 0
-            self._write_both(["best"], vm)
+            _, self._best_resumable_dir = self._write_both(["best"], vm)
         else:
             self.tr.no_improve_evals += 1
             if (self.cfg.early_stop_patience is not None

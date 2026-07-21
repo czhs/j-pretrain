@@ -18,7 +18,9 @@ on every `load_dataset` so the exact commit is pinned.
 ## 2. Tokenizer (frozen)
 - SmolLM2-135M BPE, revision `93efa2f097d58c2a74874c7e644dbc9b0cee75a2`, saved **into the
   repo** at `configs/data/tokenizer/` (5 files, 4.79 MB) and loaded only from that local
-  copy — never the network. Dir SHA-256 `b4ec3f78…a301c4`.
+  copy — never the network. Dir SHA-256 `658eb5b9…af525` (canonical `tokenizer_sha256`,
+  name+bytes; the identical frozen files also bytes-only-hash to `b4ec3f78…a301c4` — reconciled
+  to the canonical function, DECISIONS.md).
 - vocab 49152, bos=eos=0 (`<|endoftext|>`), pad=None. One tokenizer across all stages.
 - Token dtype `uint16` (vocab < 65536). Determinism covered by `test_...tokenizer` +
   `encode_document` (add_special_tokens=False; a single EOS appended per document).

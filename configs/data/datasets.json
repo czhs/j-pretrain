@@ -11,7 +11,8 @@
     "eos_id": 0,
     "bos_id": 0,
     "pad_id": null,
-    "dir_sha256": "b4ec3f7868b423ca67dade52f594c07c7a4f17c60f07584415b6e263a1a301c4",
+    "dir_sha256": "658eb5b9c30af1ec103a499c344d1a8a97b45631a2cd8723917041bc5f1af525",
+    "dir_sha256_method": "j_pretrain.data.tokenizer.tokenizer_sha256 (sha256 over sorted filename+bytes); this is the canonical fingerprint stamped into every shard/probe manifest. (Prior value b4ec3f78… was a bytes-only hash of the identical frozen files — same bytes, different method; reconciled to the canonical function, see DECISIONS.md.)",
     "provenance": "INFERRED_FROM_SMOLLM2"
   },
   "budgets": {
