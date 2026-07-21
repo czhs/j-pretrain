@@ -1,0 +1,20 @@
+76b38d5 Update durable state: analysis pipeline + telemetry built (91 tests); awaiting datasets
+de7f54b Capture grad norm + throughput + peak VRAM + wall-clock in training telemetry
+a917555 Add Figure-3a analysis pipeline: inventory -> results.{csv,json} + figure + classification
+2240e43 Update durable state: readiness audit READY, MAJOR-1 fixed, awaiting datasets
+1aeb68a Fix Stage-2 restored_best to reload best-val weights (readiness-audit MAJOR-1)
+d219e43 Update durable state: orchestrator entrypoint built (85 tests); readiness audit dispatched
+5ddfce2 Add single-GPU orchestrator entrypoint + full-pipeline integration test
+7b3766a Decouple stage-driver inventory_dir from checkpoint payload root + test
+99d4b76 Update durable state: verifier + failure docs built
+7bdd45f Fix .gitignore so small inventories are committable (parent-exclude gotcha)
+1f6e9ac Add FAILURE_PLAYBOOK + FAILURES docs; record inventory-location decision
+6cf3d00 Add faithful completion verifier (deterministic gate)
+93f4fb4 Update durable state: orchestration core built (82 tests)
+a0c785c Add stage driver + metric logging (core execution engine) + 3 e2e tests
+3a97b1e Add orchestration foundation: exclusive GPU lock + run DAG + 12 tests
+bffa38f Lock experiment scope (5 conditions, scope_hash ca992877); freeze training decisions
+921b9de Freeze stage configs + measure checkpoint storage; feasibility gate PASS
+88c4763 Validate training + resume pipeline: trainer, atomic checkpoints, inventory + 26 tests
+8405774 Validate deterministic data pipeline: tokenizer freeze, packing/shards/splits/subset/lambda-interleave/probes + 29 tests + DATA_AUDIT
+6fddd39 Validate data access + record ops fix (direct python path)

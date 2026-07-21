@@ -1,7 +1,7 @@
 {
   "state_version": 2,
   "schema_version": 1,
-  "updated_at_utc": "2026-07-21T15:01:45Z",
+  "updated_at_utc": "2026-07-21T16:39:00Z",
   "current_phase": "readiness_audited_ready_awaiting_datasets",
   "spec_hash": "60ee3bde7d45a919d89aac2ca4ccdac1047961520a3c567d25ee822af6a5e313",
   "scope_hash": "ca992877cf388153d4eb02896c252bc0fddf8291a4b7e0c18bc44cc1252256cc",
@@ -138,7 +138,11 @@
       "log": "logs/build_datasets_20260721T133614Z.log",
       "output": "/home/hshi-j-4090/Desktop/j-pretrain-artifacts/datasets",
       "started_at_utc": "2026-07-21T15:14:00Z",
-      "note": "See state/process_registry.json. Health-check ~10min; wake on failure/completion/disk. Resumable; does NOT touch GPU."
+      "note": "See state/process_registry.json. Health-check ~10min; wake on failure/completion/disk. Resumable; does NOT touch GPU.",
+      "worker_pid": 1100075,
+      "last_healthcheck_utc": "2026-07-21T16:39:00Z",
+      "watcher_bg": "harness_bg_task bk9o8hn3g (re-armed 2026-07-21T16:39Z; runs /tmp/build_watch.sh; fires on EXIT_CODE marker OR wrapper pid 1100073 death; 5min poll; harness re-invokes main agent on exit). Prior watchers did NOT survive session boundaries. On a fresh session, check `pgrep -af build_watch.sh` (excluding grep); if absent, re-launch via Bash run_in_background: bash /tmp/build_watch.sh.",
+      "progress": "16 C4 train shards complete @16:39Z (shard-00015 finished 09:32:52 local = 16:32:52Z, ~11min cadence, ON PACE, worker State R; ~100M tok/shard, 204.8MB each); wrapper pid 1100073 + worker pid 1100075 alive etime 2h59m, worker 93% CPU State R, mid shard-00016. Disk 989G free. Shard cadence PERFECTLY REGULAR ~11min: 08:03,08:14,08:25,08:37,08:48,08:59,09:10,09:21 local; shard-00014 @09:21:41 local = 16:21:41Z, only 10min before this 16:31Z check -> ON PACE, NO STALL. *** CLOCK TRAP (do not repeat): host local time is UTC-7. Shard ls timestamps are LOCAL; `date -u` is UTC. Do NOT compare a LOCAL shard mtime against a UTC now, and do NOT infer 'now' from process etime+recorded started_at (the recorded started_at 15:14Z is imprecise; true start ~13:37Z per etime). Convert both to the same zone: local_shard + 7h = UTC. *** NOTE: build writes shards directly and does NOT emit per-shard progress lines to the log (log mtime stays at startup until EXIT_CODE); use shard mtimes in $ARTIFACT_ROOT/datasets/c4/train/ as the true progress signal, not log tail. Only c4/train subdir exists so far (mp/chempile/val built after C4 train). Healthy, no errors. ~987GB free (no disk pressure). Post-build critical-path scripts (build_probes.py, orchestration.run, analysis) confirmed present + import-clean prior session. Completion signal = 'EXIT_CODE=' appended to log. ~70 C4 shards remain (~13h), then MP subset + ChemPile shards, then all val sets."
     }
   ],
   "latest_checkpoints": {},
@@ -204,7 +208,7 @@
         "us-olympiad-problems-default",
         "youtube-transcripts-as-lectures-default"
       ],
-      "config_decision": "PENDING (DATA_AUDIT)"
+      "config_decision": "RESOLVED in configs/data/datasets.json: ALL 4 education configs concatenated (deterministic order), revision c653c3c7; LOCAL_REPRODUCTION_CHOICE. Build streams all 4 in _chempile_stream."
     },
     "tokenizer": {
       "id": "HuggingFaceTB/SmolLM2-135M",
