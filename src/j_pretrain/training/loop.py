@@ -75,6 +75,7 @@ class Trainer:
         self.tokens = TokenCounters()
         self.best_val: Optional[float] = None
         self.no_improve_evals = 0
+        self.last_grad_norm: float = 0.0  # pre-clip total grad norm (permanent run data)
 
     # ---- core loop -------------------------------------------------------
     def _autocast(self):
@@ -107,7 +108,8 @@ class Trainer:
                 step_loss += loss.item() / self.grad_accum
                 self.windows_consumed += self.microbatch
                 self.tokens.add(counts, self.seq_len)
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.grad_clip)
+            gnorm = torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.grad_clip)
+            self.last_grad_norm = float(gnorm)
             self.opt.step()
             self.opt_step += 1
             if on_step is not None:

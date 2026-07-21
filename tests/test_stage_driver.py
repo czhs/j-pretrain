@@ -99,10 +99,12 @@ def test_stage_driver_writes_milestones_and_inventory(tmp_path):
         assert ck.read_meta(d)["load_validation_status"] == "verified"
         assert ck.verify_checksums(d)
 
-    # metrics log has incoming, eval, final events
-    events = [__import__("json").loads(l)["event"]
-              for l in (root / "metrics.jsonl").read_text().splitlines()]
+    # metrics log has incoming, eval, final events, and telemetry (grad_norm, wall clock)
+    records = [__import__("json").loads(l) for l in (root / "metrics.jsonl").read_text().splitlines()]
+    events = [r["event"] for r in records]
     assert "incoming" in events and "final" in events and "eval" in events
+    assert all("grad_norm" in r for r in records if r["event"] in ("step", "eval"))
+    assert any("t_epoch" in r for r in records if r["event"] == "final")
 
 
 def test_stage_driver_unique_ids_no_overwrite(tmp_path):

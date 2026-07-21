@@ -20,6 +20,7 @@ continues from its optimizer step — a healthy run is never restarted.
 """
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Mapping, Optional
@@ -98,6 +99,9 @@ class StageDriver:
         self._stopped_early = False
         # resumable dir of the most recent best-val checkpoint (stage2), for restore.
         self._best_resumable_dir: Optional[Path] = None
+        # wall-clock heartbeat state (throughput) — logging only, not determinism.
+        self._hb_time: Optional[float] = None
+        self._hb_tokens: int = self._prev_driver_tokens
 
     # ---- token axis ------------------------------------------------------
     def _driver_tokens(self) -> int:
@@ -152,13 +156,30 @@ class StageDriver:
     def _evaluate(self) -> dict[str, float]:
         return {name: self.tr.evaluate(ds) for name, ds in self.val_sets.items()}
 
+    # ---- resource heartbeat (throughput / VRAM) --------------------------
+    def _vram_gb(self) -> Optional[float]:
+        dev = self.tr.device
+        if not str(dev).startswith("cuda") or not torch.cuda.is_available():
+            return None
+        return torch.cuda.max_memory_allocated() / (1 << 30)
+
+    def _throughput(self, dt: int) -> Optional[float]:
+        """Tokens/sec since the last heartbeat (wall-clock; None on first call)."""
+        now = time.time()
+        prev_t, prev_tok = self._hb_time, self._hb_tokens
+        self._hb_time, self._hb_tokens = now, dt
+        if prev_t is None or now <= prev_t:
+            return None
+        return (dt - prev_tok) / (now - prev_t)
+
     # ---- main loop -------------------------------------------------------
     def run(self, resumed: bool = False, chunk: int = 1) -> dict:
         if not resumed:
             vm = self._evaluate()
             self._incoming_id, _ = self._write_both(["incoming"], vm)
             self.log.log({"event": "incoming", "opt_step": self.tr.opt_step,
-                          "driver_tokens": self._driver_tokens(), **_prefix(vm, "val")})
+                          "driver_tokens": self._driver_tokens(), "t_epoch": time.time(),
+                          **_prefix(vm, "val")})
 
         while self.tr.opt_step < self.tr.total_steps and not self._stopped_early:
             target = min(self.tr.opt_step + chunk, self.tr.total_steps)
@@ -171,7 +192,8 @@ class StageDriver:
         vm = self._evaluate()
         self._write_both(["final"], vm)
         self.log.log({"event": "final", "opt_step": self.tr.opt_step,
-                      "driver_tokens": self._driver_tokens(), **_prefix(vm, "val")})
+                      "driver_tokens": self._driver_tokens(), "t_epoch": time.time(),
+                      "peak_vram_gb": self._vram_gb(), **_prefix(vm, "val")})
 
         result = {"final_metrics": vm, "opt_step": self.tr.opt_step,
                   "driver_tokens": self._driver_tokens(),
@@ -208,11 +230,16 @@ class StageDriver:
             vm = self._evaluate()
             self._prev_eval_tokens = dt
             self.log.log({"event": "eval", "opt_step": self.tr.opt_step,
-                          "driver_tokens": dt, "train_loss": last_loss, **_prefix(vm, "val")})
+                          "driver_tokens": dt, "train_loss": last_loss,
+                          "grad_norm": self.tr.last_grad_norm,
+                          "lr": self.tr.opt.param_groups[0]["lr"],
+                          "tokens_per_s": self._throughput(dt), "vram_gb": self._vram_gb(),
+                          "t_epoch": time.time(), **_prefix(vm, "val")})
             self._maybe_best_and_earlystop(vm)
         else:
             self.log.log({"event": "step", "opt_step": self.tr.opt_step,
                           "driver_tokens": dt, "train_loss": last_loss,
+                          "grad_norm": self.tr.last_grad_norm,
                           "lr": self.tr.opt.param_groups[0]["lr"]})
         self._prev_driver_tokens = dt
 
