@@ -1,16 +1,15 @@
 # NEXT ACTION
 
-**Phase:** orchestrator_built (run.py DAG loop + GPU lock + parent-lineage load + resume +
-StageDriver + per-run audit + manifests; 85 tests pass; full tiny stage1->2->3 pipeline test green)
+**Phase:** readiness_audited_ready_awaiting_datasets. Orchestrator + probes built; 87 tests pass.
+Readiness audit = READY (18 PASS/0 crit, reports/PRETRAIN_READINESS_AUDIT.md). Its one MAJOR
+(restored_best used terminal not best-val weights) is FIXED + regression-tested (commit 1aeb68a).
+**Only remaining Stage-1 gate: dataset build must finish.**
 
 **Processes running?**
 - `build_datasets` tmux `dbuild` pid 1100073 (CPU tokenize, NOT GPU). Log:
-  `logs/build_datasets_20260721T133614Z.log`. ~6 C4 train shards done; C4 alone ~85 shards (~15h)
+  `logs/build_datasets_20260721T133614Z.log`. ~7/85 C4 train shards done (~11min/shard); C4 ~15h
   then MP + ChemPile. Resumable (skips complete manifests). DO NOT restart if healthy. Health-check
   ~10min: `grep -E '\[done\]|EXIT_CODE' <log> | tail; ps -p 1100073 -o etime=`.
-- `PRETRAIN_READINESS_AUDIT` fresh-context subagent (background) -> writes
-  `reports/PRETRAIN_READINESS_AUDIT.md`. Review its summary on completion; resolve any critical/major
-  BEFORE launching Stage 1.
 
 **CRITICAL OPS:** Use `/home/hshi-j-4090/miniconda3/envs/jpre/bin/python` DIRECTLY (NOT `conda run`).
 For HF/data/GPU ops set `HF_HUB_ENABLE_HF_TRANSFER=0 TOKENIZERS_PARALLELISM=false
