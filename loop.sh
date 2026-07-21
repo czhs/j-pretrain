@@ -23,7 +23,7 @@ while [ "$i" -lt "$1" ]; do
   log="$LOG_DIR/iter_${i}_${ts}.log"
   echo "=== Iteration $i ($ts) -> $log ==="
 
-  claude -p "$(cat "$PROMPT_FILE")" --output-format text --dangerously-skip-permissions 2>&1 | tee "$log"
+  claude -p "$(cat "$PROMPT_FILE")" --output-format stream-json --verbose --include-partial-messages --dangerously-skip-permissions 2>&1 | tee "$log" | python3 ralph_pretty.py
   echo "--- end iteration $i (exit ${PIPESTATUS[0]}) ---"
 
   # Usage/rate limit: sleep and don't count the attempt against the budget
