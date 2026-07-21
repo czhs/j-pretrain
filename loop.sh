@@ -5,6 +5,7 @@ PROMISE="<promise>EXPERIMENTS_COMPLETE</promise>"
 LOG_DIR="logs/ralph"
 LIMIT_SLEEP=1800   # 30 min between retries while usage-limited
 ITER_SLEEP=15      # small breather between normal iterations
+MAX_TURNS=30       # cap session length: keeps context small and per-turn usage cheap
 
 if [ -z "${1:-}" ]; then
   echo "Usage: $0 <iterations>"
@@ -23,11 +24,11 @@ while [ "$i" -lt "$1" ]; do
   log="$LOG_DIR/iter_${i}_${ts}.log"
   echo "=== Iteration $i ($ts) -> $log ==="
 
-  claude -p "$(cat "$PROMPT_FILE")" --output-format stream-json --verbose --include-partial-messages --dangerously-skip-permissions 2>&1 | tee "$log" | python3 ralph_pretty.py
+  claude -p "$(cat "$PROMPT_FILE")" --output-format stream-json --verbose --include-partial-messages --max-turns "$MAX_TURNS" --dangerously-skip-permissions 2>&1 | tee "$log" | python3 ralph_pretty.py
   echo "--- end iteration $i (exit ${PIPESTATUS[0]}) ---"
 
   # Usage/rate limit: sleep and don't count the attempt against the budget
-  if grep -qiE 'usage limit|rate limit|limit reached|resets at' "$log"; then
+  if grep -qiE 'hit your session limit|usage limit|rate limit|limit reached|resets at|"rate_limit_event"|api_error_status": ?429' "$log"; then
     echo "Usage limit detected; sleeping ${LIMIT_SLEEP}s before retry..."
     i=$((i-1))
     sleep "$LIMIT_SLEEP"
@@ -42,6 +43,17 @@ while [ "$i" -lt "$1" ]; do
     else
       echo "WARNING: promise emitted but verifier missing or failing; continuing."
     fi
+  fi
+
+  # Wait hint: Claude ended the session because only a long wait remains
+  if [ -f state/WAIT_HINT ]; then
+    w=$(tr -cd '0-9' < state/WAIT_HINT); rm -f state/WAIT_HINT
+    w=${w:-600}
+    [ "$w" -gt 3600 ] && w=3600
+    [ "$w" -lt 60 ] && w=60
+    echo "Wait hint honored: sleeping ${w}s before next session..."
+    sleep "$w"
+    continue
   fi
 
   sleep "$ITER_SLEEP"

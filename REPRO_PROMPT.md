@@ -319,18 +319,27 @@ Every iteration-ledger record should contain:
 }
 ```
 
-## Avoid rapid empty iterations
+## Avoid rapid empty iterations, and prefer short sessions over in-session waiting
 
-Do not busy-poll.
+Do not busy-poll. Do not invoke `nvidia-smi`, `ps`, `tail`, or similar commands every few seconds.
 
-If a training process is running and no immediate action is required:
+Because per-turn usage cost grows with accumulated session context, long waits must happen in the outer loop wrapper, not inside a session:
 
-- Use a blocking watcher or sleep interval.
-- Wait approximately 10 minutes between routine health checks.
-- Wake immediately for process failure, evaluation completion, checkpoint completion, or disk-pressure events.
-- Do not invoke `nvidia-smi`, `ps`, `tail`, or similar commands every few seconds.
+- If a training or build process is running and no immediate action is required, perform ONE health check, bring durable state fully current (including `state/NEXT_ACTION.md`), write the recommended wait in seconds as a bare integer to `state/WAIT_HINT` (typically `600` during healthy training; up to `3600` for long unattended stretches), and end the session cleanly. The wrapper sleeps that long, deletes the hint, and relaunches a fresh session.
+- Only sleep in-session for short operational waits (under ~2 minutes), such as waiting for a checkpoint file to finish serializing or a process to start.
+- Never write `state/WAIT_HINT` when there is actionable work remaining — the hint means "nothing to do but wait."
+- Wake conditions remain unchanged: on relaunch, act immediately on process failure, evaluation completion, checkpoint completion, or disk-pressure events found during the health check.
 
 A long-running healthy training process is not a reason to restart it.
+
+## Session turn budget
+
+Each session is launched with a hard cap of approximately 30 turns (`--max-turns`) and may be cut off abruptly at any turn, without warning and without a chance to finish. Therefore:
+
+- Treat every turn as potentially the last. After each meaningful unit of work (a file written, a process launched, a check completed), update durable state before starting the next unit — never batch state updates for the end of the session.
+- Prefer small complete units of work per session over long multi-step arcs. A session that completes one thing and hands off cleanly beats a session that half-finishes three things.
+- If the cap interrupts mid-task, the next session recovers via the standard beginning-of-iteration protocol; design all multi-step work (downloads, tokenization, launches) to be resumable so an interruption costs only the incomplete step.
+- Delegating to subagents does not evade the cap; budget for their turns.
 
 ## Usage-limit pauses
 
