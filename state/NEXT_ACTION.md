@@ -1,36 +1,40 @@
 # NEXT ACTION
 
-**Phase:** spec_frozen_impl_pending (spec extracted + independently audited; benchmark done)
+**Phase:** impl_foundation_done (config+model built & tested; data access validated)
 
 **Process running?** No training/GPU job. No detached runner. Nothing to babysit.
 
+**CRITICAL OPS NOTE:** Use `/home/hshi-j-4090/miniconda3/envs/jpre/bin/python` DIRECTLY.
+Do NOT use `conda run -n jpre` (it swallows heredoc stdout → false "hang"). Set
+`HF_HUB_ENABLE_HF_TRANSFER=0 TOKENIZERS_PARALLELISM=false` for HF ops.
+
 **Last verified (2026-07-21):**
-- Env `jpre` fully built (torch 2.5.1+cu121, transformers 4.46.3, wandb 0.18.7). GPU free.
-- PAPER_SPEC.md extracted + independently audited → 11/11 confirmed, 0 errors (reports/SPEC_AUDIT.md).
-- REFERENCES.md consolidated. No official code exists → key unknowns are documented LOCAL choices.
-- Model builds to 134.52M params (SmolLM2-135M config, verified via curl).
-- Throughput bench: compile mb8 = 94.3k tok/s @9.65GB; eager mb8 = 52.5k tok/s. Feasibility PASS
-  (~7d compile / ~12-16d eager incl overhead; both < 21d gate). See docs/COMPUTE_PLAN.md (prelim).
-- Key decisions FROZEN in state/DECISIONS.md: arch, 8.7B C4, λ=ADD policy, exec=compile.
+- Spec frozen + audited (11/11). Env jpre ready. Benchmark: compile mb8=94k tok/s. Feasibility PASS.
+- Config system + 135M model builder: 12 tests pass. Model = 134,515,008 params, tied embeds.
+  Commits: 3b40459 (spec freeze), d4a1bd4 (config+model).
+- Data access validated (streaming): C4(en).text OK; MusicPile.text OK (Human/Assistant fmt);
+  ChemPile needs config (4 available). Tokenizer SmolLM2-135M OK (vocab 49152, bos=eos=0, pad None).
 
 **Next exact action (fresh session):**
-1. `cat state/experiment_state.json state/NEXT_ACTION.md state/DECISIONS.md`
-2. Build the typed codebase under `src/j_pretrain/`:
-   - `config/` — dataclasses + deterministic config hashing + run-id derivation.
-   - `models/` — SmolLM2-135M builder from frozen config; param-count assert; save init checkpoint.
-   - `data/` — tokenizer freeze; C4/MusicPile/ChemPile streaming+tokenize to mmap shards; deterministic
-     splits (train/tune/val, no overlap); 300M MusicPile subset; λ interleave scheduler; probes.
-   - `training/` — resumable trainer (AdamW, cosine, grad-accum, bf16, compile, atomic ckpt, RNG+cursor).
-   - `evaluation/` — token-weighted CE eval on frozen val sets (L_im/L_ret/L_ft/L_pre).
-   - `artifacts/` — atomic checkpoint writer, inventory (jsonl), checksums, load-validation.
-   - `orchestration/` — DAG, GPU lock, run queue, tmux durable runner, resume logic.
-   - `analysis/` — results tables + figure3a regen.
-3. Write `configs/{model,data,stage1,stage2,stage3,experiments}` frozen YAML/JSON.
-4. Write tests (see CLAUDE.md required-tests list) incl. deterministic resume integration test.
-5. THEN: real data pipeline + DATA_AUDIT.md (independently audited) + storage bench.
-6. THEN: PRETRAIN_READINESS_AUDIT → SCOPE_LOCK.json + FEASIBILITY.md gate → Stage 1.
+1. `cat state/experiment_state.json state/NEXT_ACTION.md state/DECISIONS.md`; `pytest tests/ -q`.
+2. Build the DATA PIPELINE (`src/j_pretrain/data/`) + tests + `docs/DATA_AUDIT.md`:
+   - Freeze tokenizer (save to configs/data/ or artifacts; record revision).
+   - Resolve HF dataset revisions (pin commit hashes); write configs/data/*.
+   - DECIDE ChemPile config set (likely all 4 education configs) → record in DATA_AUDIT.
+   - Deterministic download+tokenize+pack to memory-mapped shards (seq_len 1024). DO NOT load full
+     corpora into RAM. Only fetch C4 shards needed for 8.7B + val margin.
+   - Deterministic train/tune/val splits with NO document overlap; no ChemPile in Stage1/2; no
+     MusicPile-val leakage. Record doc IDs, seeds, manifests, hashes.
+   - 300M MusicPile subset construction (full pool); λ interleave scheduler (C4 fixed 8.7B +
+     λ·300M added, uniform interleave). Exact per-source token counting.
+   - Fixed probes (C4/MusicPile/ChemPile) → artifacts/probes/.
+   - Tests: λ allocation, per-source token counts, subset construction, split disjointness,
+     determinism, tokenizer determinism, no-leakage, probe determinism.
+3. THEN: training/artifacts modules (resumable trainer, atomic ckpt, inventory) + resume test.
+4. THEN: orchestration (DAG, GPU lock, tmux runner) + storage bench + STORAGE_PLAN.md.
+5. THEN: PRETRAIN_READINESS_AUDIT → SCOPE_LOCK.json + FEASIBILITY.md gate → Stage 1 training.
 
-**Must NOT repeat:** preflight, env build, spec extraction/audit, prelim benchmark (all done+committed).
-**Must NOT:** commit weights/datasets/logs; reduce scope; start training before readiness audit + scope lock.
+**Must NOT repeat:** preflight, env, spec, benchmark, config/model impl, data-access probe (all done).
+**Must NOT:** commit weights/datasets/logs; use `conda run`; reduce scope; train before readiness audit.
 
-**Command to resume orchestrator:** none yet (no runs launched; orchestrator not built).
+**Command to resume orchestrator:** none yet (orchestrator not built).

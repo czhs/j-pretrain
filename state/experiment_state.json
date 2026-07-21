@@ -1,8 +1,8 @@
 {
   "state_version": 2,
   "schema_version": 1,
-  "updated_at_utc": "2026-07-21T13:14:40Z",
-  "current_phase": "spec_frozen_impl_pending",
+  "updated_at_utc": "2026-07-21T13:40:00Z",
+  "current_phase": "impl_foundation_done",
   "spec_hash": "60ee3bde7d45a919d89aac2ca4ccdac1047961520a3c567d25ee822af6a5e313",
   "scope_hash": null,
   "environment_hash": null,
@@ -60,7 +60,14 @@
   "retry_counts": {},
   "active_processes": [],
   "latest_checkpoints": {},
-  "completed_milestones": ["preflight", "env_built", "spec_extracted", "spec_audited", "throughput_benchmark_preliminary"],
+  "completed_milestones": ["preflight", "env_built", "spec_extracted", "spec_audited", "throughput_benchmark_preliminary", "package_scaffold", "config_system", "model_builder_tested_12tests", "data_access_validated"],
+  "data_access": {
+    "python_invocation": "/home/hshi-j-4090/miniconda3/envs/jpre/bin/python (NOT conda run)",
+    "c4": {"path": "allenai/c4", "name": "en", "text_key": "text", "streaming_ok": true},
+    "musicpile": {"path": "m-a-p/MusicPile", "text_key": "text", "format": "Human/Assistant conversational", "streaming_ok": true},
+    "chempile": {"path": "jablonkagroup/chempile-education", "requires_config": true, "configs": ["LibreText_Chemistry-default", "mit-ocw-lecture-transcripts-default", "us-olympiad-problems-default", "youtube-transcripts-as-lectures-default"], "config_decision": "PENDING (DATA_AUDIT)"},
+    "tokenizer": {"id": "HuggingFaceTB/SmolLM2-135M", "vocab_size": 49152, "bos": 0, "eos": 0, "pad": null}
+  },
   "metrics": {},
   "disk_usage": {"root_avail_gb": 590, "root_use_pct": 83},
   "backup_status": "none_configured",
