@@ -1,12 +1,17 @@
-# === Large / non-committable artifacts ===
-artifacts/
-!artifacts/.gitkeep
-!artifacts/checkpoint_inventory.jsonl
-!artifacts/run_artifact_inventory.jsonl
-!artifacts/file_checksums.sha256
-!artifacts/storage_usage.jsonl
-!artifacts/backup_status.jsonl
-!artifacts/probes/probe_manifest.json
+# === Large / non-committable artifacts (repo-root artifact tree ONLY;
+#     NOT the src/j_pretrain/artifacts source package) ===
+# Use /artifacts/* (not /artifacts/) so specific small inventories can be re-included:
+# a file whose PARENT dir is excluded cannot be negated back in.
+/artifacts/*
+!/artifacts/.gitkeep
+!/artifacts/checkpoint_inventory.jsonl
+!/artifacts/run_artifact_inventory.jsonl
+!/artifacts/file_checksums.sha256
+!/artifacts/storage_usage.jsonl
+!/artifacts/backup_status.jsonl
+!/artifacts/probes/
+/artifacts/probes/*
+!/artifacts/probes/probe_manifest.json
 
 # model weights / optimizer / tokenized data
 *.safetensors
