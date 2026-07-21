@@ -1,6 +1,6 @@
 # NEXT ACTION
 
-**Phase:** scope_locked (training+artifacts+stage-configs done; SCOPE_LOCK.json written; 67 tests pass)
+**Phase:** orchestration_core_built (gpu-lock + DAG + stage-driver + metrics done; 82 tests pass)
 
 **Process running?** YES — `build_datasets_full` (CPU tokenization, tmux `dbuild`, pid 1100073,
 NOT GPU). Log: `logs/build_datasets_20260721T133614Z.log`. Output:
@@ -27,27 +27,34 @@ for HF/data ops.
 - Atomic ckpt writer: analysis (bf16 safetensors) + resumable (fp32 model+opt+rng+cursor in
   training_state.pt); tmp->fsync->checksum->load-test->rename; append-only inventory.
 
-**DONE since last:** stage configs frozen (configs/stage{1,2,3}); storage bench (analysis 310.6MB,
-resumable 1850MB) -> STORAGE_PLAN.md; FEASIBILITY.md gate PASS; SCOPE_LOCK.json (scope_hash ca992877,
-5 runs music-300m_lambda-{0.0..1.0}); run_queue + runs populated in experiment_state.
+**DONE since last:** orchestration core — `orchestration/gpulock.py` (exclusive GPU lock, stale
+reclaim), `orchestration/dag.py` (run DAG, next_node), `orchestration/stage_driver.py` (StageDriver:
+milestone ckpts + eval + best/early-stop + inventory), `orchestration/metrics.py` (local JSONL +
+wandb). tests/test_orchestration.py (12) + tests/test_stage_driver.py (3). Stage configs, storage
+bench, FEASIBILITY gate PASS, SCOPE_LOCK (ca992877, 5 runs) all done in prior sub-iters.
 
 **Next exact action (fresh session):**
-1. `cat state/experiment_state.json state/NEXT_ACTION.md state/SCOPE_LOCK.json`; `pytest tests/ -q` (67).
-2. Build `src/j_pretrain/orchestration/`: (a) run DAG per RunSpec (stage1->2->3, lambda=0 stage1 feeds
-   ONLY lambda=0), (b) exclusive GPU lock file (state/gpu.lock w/ pid+staleness detect), (c) tmux
-   durable runner launching ONE stage at a time via env python, (d) state/run_queue.json + update
-   process_registry.json, (e) resume-detection (skip validated artifacts; validate config+lineage
-   hashes; never restart healthy run), (f) retry transient <=3 then failed_blocked. A stage driver
-   that wires Trainer + checkpoint schedules (schedule.crossed_*) + eval + wandb (entity ametind-o,
-   proj j-pretrain, run=run_id, group by stage/lambda) + inventory.record_checkpoint.
-3. `scripts/verify_completion.py` — deterministic, machine-readable, nonzero on any unmet criterion
-   (see mission "Completion verifier" list). Writes reports/completion_verification.json + summary.
-4. Per-run completion audit fn (config hash match, lineage, token counts, ckpts load, metrics complete).
+1. `cat state/experiment_state.json state/NEXT_ACTION.md state/SCOPE_LOCK.json`; `pytest tests/ -q` (82).
+2. Build orchestrator entrypoint `src/j_pretrain/orchestration/run.py` (`python -m j_pretrain.orchestration.run`):
+   read experiment_state+SCOPE_LOCK, `dag.next_node` (order=run_queue, lambda=0 first), acquire
+   GpuLock(state/gpu.lock), build REAL sources: stage1={c4-train, mp-train(subset prefix)} via
+   PackedDataset + Stage1Plan(lambda_plan windows); stage2=mp-train subset via ShuffledSourcePlan;
+   stage3=chempile-train via ShuffledSourcePlan; val_sets={c4,mp,chempile}-val. Build model, load
+   parent weights (stage1<-init ckpt; stage2<-stage1 final; stage3<-stage2 restored_best). Run
+   StageDriver. Update experiment_state runs[*][stage] + process_registry + run_queue.json. Detached
+   via tmux; resume-detect (load latest valid resumable; never restart healthy). retry<=3.
+3. `scripts/verify_completion.py` — full mandatory-criteria checklist -> reports/completion_verification.json,
+   nonzero on any unmet. (See mission "Completion verifier".)
+4. Per-run completion audit fn (config-hash match, lineage, token counts, ckpts load, metrics complete).
 5. PRETRAIN_READINESS_AUDIT via fresh-context subagent -> reports/PRETRAIN_READINESS_AUDIT.md; resolve
    criticals BEFORE Stage 1.
-6. When build_datasets.py EXIT_CODE=0: build probes (data/probes.py, first 256 val windows/corpus) +
-   record dataset_manifest_hashes in experiment_state -> save permanent init ckpt (seed 1234, shared
-   across all 5 stage1 runs) -> launch Stage 1 lambda=0 first, detached via orchestrator.
+6. When build_datasets.py EXIT_CODE=0: build probes (data/probes.py) + record dataset_manifest_hashes
+   -> save shared init ckpt (seed 1234) -> launch Stage 1 lambda=0 first, detached via orchestrator.
+
+**Key facts for entrypoint:** run_ids = music-300m_lambda-{0.0,0.25,0.5,0.75,1.0}; seed 1234;
+Stage1 total_steps per-lambda = (8496093 + round(lambda*292968))//512; Stage2/3 total_steps =
+StageConfig.max_optimizer_steps. Stage2 uses FULL 292968-window subset every lambda. artifact_root =
+/home/hshi-j-4090/Desktop/j-pretrain-artifacts; ckpts under <root>/checkpoints/<run>/<stage>/<class>/.
 
 **Must NOT repeat:** preflight, env, spec, benchmark, config/model, data pipeline+tests, tokenizer
 freeze, revision pin, DATA_AUDIT, training+artifacts modules+tests, resume test (all done).
