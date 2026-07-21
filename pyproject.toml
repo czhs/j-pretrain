@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "j-pretrain"
+version = "0.1.0"
+description = "Reproduction of Figure 3a: Early Data Exposure Improves Robustness to Subsequent Fine-Tuning"
+requires-python = ">=3.11"
+# Runtime deps are pinned/installed via scripts/setup_env.sh into conda env `jpre`.
+# Listed here for documentation; the conda env is the canonical environment.
+dependencies = [
+  "torch==2.5.1",
+  "transformers==4.46.3",
+  "datasets==3.1.0",
+  "tokenizers==0.20.3",
+  "safetensors==0.4.5",
+  "accelerate==1.1.1",
+  "huggingface_hub==0.26.2",
+  "numpy==2.1.3",
+  "pandas==2.2.3",
+  "scipy==1.14.1",
+  "matplotlib==3.9.2",
+  "pyyaml==6.0.2",
+  "pyarrow==18.0.0",
+  "tqdm==4.67.1",
+  "wandb==0.18.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==8.3.3"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
