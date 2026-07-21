@@ -1,11 +1,11 @@
 {
   "state_version": 2,
   "schema_version": 1,
-  "updated_at_utc": "2026-07-21T16:55:00Z",
-  "current_phase": "verifier_and_docs_built",
+  "updated_at_utc": "2026-07-21T14:45:05Z",
+  "current_phase": "orchestrator_built",
   "spec_hash": "60ee3bde7d45a919d89aac2ca4ccdac1047961520a3c567d25ee822af6a5e313",
   "scope_hash": "ca992877cf388153d4eb02896c252bc0fddf8291a4b7e0c18bc44cc1252256cc",
-  "environment_hash": null,
+  "environment_hash": "a62ab8da1c90ff2822fb188b6845813d74c763ac389f23071827330734814aac",
   "dataset_manifest_hashes": {
     "tokenizer_dir_sha256": "b4ec3f7868b423ca67dade52f594c07c7a4f17c60f07584415b6e263a1a301c4",
     "c4_revision": "1588ec454efa1a09f29cd18ddd04fe05fc8653a2",
@@ -21,10 +21,20 @@
     "git_push_lsremote_ok": true,
     "gpu_visible": true,
     "gpu_free": true,
-    "datasets_reachable": {"c4": "allenai/c4@1588ec45", "musicpile": "m-a-p/MusicPile@5930bd71", "chempile": "jablonkagroup/chempile-education@c653c3c7"},
+    "datasets_reachable": {
+      "c4": "allenai/c4@1588ec45",
+      "musicpile": "m-a-p/MusicPile@5930bd71",
+      "chempile": "jablonkagroup/chempile-education@c653c3c7"
+    },
     "disk_free_gb": 590,
     "disk_use_pct": 83,
-    "tools_present": ["tmux", "python", "git", "rg", "jq"],
+    "tools_present": [
+      "tmux",
+      "python",
+      "git",
+      "rg",
+      "jq"
+    ],
     "python_env_ready": true
   },
   "env": {
@@ -44,7 +54,13 @@
     "model": "SmolLM2-135M (30L/576h/9qh/3kvh GQA/1536mlp/49152vocab/rope1e5/rms1e-5/tied/nobias/init0.0416667/silu)",
     "param_count_local_build": 134520000,
     "stage1_c4_tokens_per_run": 8700000000,
-    "lambda_grid": [0, 0.25, 0.5, 0.75, 1.0],
+    "lambda_grid": [
+      0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
     "d_post_tokens": 300000000,
     "lambda_policy": "ADD: C4 fixed 8.7B + lambda*300M MusicPile interleaved (not compute-matched, not C4-replacement)",
     "stage2_max_tokens": 2000000000,
@@ -61,30 +77,144 @@
     "microbatch_default": 8,
     "feasibility_preliminary": "PASS (~7d compile / ~12-16d eager incl overhead; both < 21d gate)"
   },
-  "run_queue": ["music-300m_lambda-0.0", "music-300m_lambda-0.25", "music-300m_lambda-0.5", "music-300m_lambda-0.75", "music-300m_lambda-1.0"],
+  "run_queue": [
+    "music-300m_lambda-0.0",
+    "music-300m_lambda-0.25",
+    "music-300m_lambda-0.5",
+    "music-300m_lambda-0.75",
+    "music-300m_lambda-1.0"
+  ],
   "runs": {
-    "music-300m_lambda-0.0": {"lambda": 0.0, "subset_tokens": 300000000, "seed": 1234, "stage1": "planned", "stage2": "planned", "stage3": "planned"},
-    "music-300m_lambda-0.25": {"lambda": 0.25, "subset_tokens": 300000000, "seed": 1234, "stage1": "planned", "stage2": "planned", "stage3": "planned"},
-    "music-300m_lambda-0.5": {"lambda": 0.5, "subset_tokens": 300000000, "seed": 1234, "stage1": "planned", "stage2": "planned", "stage3": "planned"},
-    "music-300m_lambda-0.75": {"lambda": 0.75, "subset_tokens": 300000000, "seed": 1234, "stage1": "planned", "stage2": "planned", "stage3": "planned"},
-    "music-300m_lambda-1.0": {"lambda": 1.0, "subset_tokens": 300000000, "seed": 1234, "stage1": "planned", "stage2": "planned", "stage3": "planned"}
+    "music-300m_lambda-0.0": {
+      "lambda": 0.0,
+      "subset_tokens": 300000000,
+      "seed": 1234,
+      "stage1": "planned",
+      "stage2": "planned",
+      "stage3": "planned"
+    },
+    "music-300m_lambda-0.25": {
+      "lambda": 0.25,
+      "subset_tokens": 300000000,
+      "seed": 1234,
+      "stage1": "planned",
+      "stage2": "planned",
+      "stage3": "planned"
+    },
+    "music-300m_lambda-0.5": {
+      "lambda": 0.5,
+      "subset_tokens": 300000000,
+      "seed": 1234,
+      "stage1": "planned",
+      "stage2": "planned",
+      "stage3": "planned"
+    },
+    "music-300m_lambda-0.75": {
+      "lambda": 0.75,
+      "subset_tokens": 300000000,
+      "seed": 1234,
+      "stage1": "planned",
+      "stage2": "planned",
+      "stage3": "planned"
+    },
+    "music-300m_lambda-1.0": {
+      "lambda": 1.0,
+      "subset_tokens": 300000000,
+      "seed": 1234,
+      "stage1": "planned",
+      "stage2": "planned",
+      "stage3": "planned"
+    }
   },
   "retry_counts": {},
   "active_processes": [
-    {"name": "build_datasets_full", "kind": "cpu_tokenization", "status": "active", "tmux_session": "dbuild", "pid": 1100073, "gpu": false, "log": "logs/build_datasets_20260721T133614Z.log", "output": "/home/hshi-j-4090/Desktop/j-pretrain-artifacts/datasets", "started_at_utc": "2026-07-21T15:14:00Z", "note": "See state/process_registry.json. Health-check ~10min; wake on failure/completion/disk. Resumable; does NOT touch GPU."}
+    {
+      "name": "build_datasets_full",
+      "kind": "cpu_tokenization",
+      "status": "active",
+      "tmux_session": "dbuild",
+      "pid": 1100073,
+      "gpu": false,
+      "log": "logs/build_datasets_20260721T133614Z.log",
+      "output": "/home/hshi-j-4090/Desktop/j-pretrain-artifacts/datasets",
+      "started_at_utc": "2026-07-21T15:14:00Z",
+      "note": "See state/process_registry.json. Health-check ~10min; wake on failure/completion/disk. Resumable; does NOT touch GPU."
+    }
   ],
   "latest_checkpoints": {},
-  "completed_milestones": ["preflight", "env_built", "spec_extracted", "spec_audited", "throughput_benchmark_preliminary", "package_scaffold", "config_system", "model_builder_tested_12tests", "data_access_validated", "tokenizer_frozen", "dataset_revisions_pinned", "data_pipeline_built_tested_29tests", "data_driver_smoke_validated", "DATA_AUDIT_written", "artifacts_ckpt_inventory_built_tested_8tests", "training_pipeline_built_tested_18tests", "deterministic_resume_test_passing", "stage_configs_frozen", "storage_bench_measured", "feasibility_gate_PASS", "scope_locked", "gpu_lock_and_dag_tested_12tests", "stage_driver_metrics_tested_3tests", "82_tests_pass"],
+  "completed_milestones": [
+    "preflight",
+    "env_built",
+    "spec_extracted",
+    "spec_audited",
+    "throughput_benchmark_preliminary",
+    "package_scaffold",
+    "config_system",
+    "model_builder_tested_12tests",
+    "data_access_validated",
+    "tokenizer_frozen",
+    "dataset_revisions_pinned",
+    "data_pipeline_built_tested_29tests",
+    "data_driver_smoke_validated",
+    "DATA_AUDIT_written",
+    "artifacts_ckpt_inventory_built_tested_8tests",
+    "training_pipeline_built_tested_18tests",
+    "deterministic_resume_test_passing",
+    "stage_configs_frozen",
+    "storage_bench_measured",
+    "feasibility_gate_PASS",
+    "scope_locked",
+    "gpu_lock_and_dag_tested_12tests",
+    "stage_driver_metrics_tested_3tests",
+    "82_tests_pass",
+    "orchestrator_entrypoint_built",
+    "per_run_audit_fn_built",
+    "orchestrator_integration_test_passing",
+    "85_tests_pass"
+  ],
   "data_access": {
     "python_invocation": "/home/hshi-j-4090/miniconda3/envs/jpre/bin/python (NOT conda run)",
-    "c4": {"path": "allenai/c4", "name": "en", "text_key": "text", "streaming_ok": true},
-    "musicpile": {"path": "m-a-p/MusicPile", "text_key": "text", "format": "Human/Assistant conversational", "streaming_ok": true},
-    "chempile": {"path": "jablonkagroup/chempile-education", "requires_config": true, "configs": ["LibreText_Chemistry-default", "mit-ocw-lecture-transcripts-default", "us-olympiad-problems-default", "youtube-transcripts-as-lectures-default"], "config_decision": "PENDING (DATA_AUDIT)"},
-    "tokenizer": {"id": "HuggingFaceTB/SmolLM2-135M", "vocab_size": 49152, "bos": 0, "eos": 0, "pad": null}
+    "c4": {
+      "path": "allenai/c4",
+      "name": "en",
+      "text_key": "text",
+      "streaming_ok": true
+    },
+    "musicpile": {
+      "path": "m-a-p/MusicPile",
+      "text_key": "text",
+      "format": "Human/Assistant conversational",
+      "streaming_ok": true
+    },
+    "chempile": {
+      "path": "jablonkagroup/chempile-education",
+      "requires_config": true,
+      "configs": [
+        "LibreText_Chemistry-default",
+        "mit-ocw-lecture-transcripts-default",
+        "us-olympiad-problems-default",
+        "youtube-transcripts-as-lectures-default"
+      ],
+      "config_decision": "PENDING (DATA_AUDIT)"
+    },
+    "tokenizer": {
+      "id": "HuggingFaceTB/SmolLM2-135M",
+      "vocab_size": 49152,
+      "bos": 0,
+      "eos": 0,
+      "pad": null
+    }
   },
   "metrics": {},
-  "disk_usage": {"root_avail_gb": 590, "root_use_pct": 83},
+  "disk_usage": {
+    "root_avail_gb": 590,
+    "root_use_pct": 83
+  },
   "backup_status": "none_configured",
-  "git": {"branch": "main", "remote": "git@github.com:czhs/j-pretrain.git", "last_commit": "7bdd45f"},
-  "next_action": "Orchestration core DONE (gpu lock + DAG + stage driver + metrics; 82 tests). NEXT: (1) orchestrator entrypoint j_pretrain.orchestration.run (reads state+scope, dag.next_node, acquire GPU lock, build REAL PackedDatasets+model-from-parent-ckpt, run StageDriver, update experiment_state/process_registry, tmux-detached, resume-detect). (2) scripts/verify_completion.py (full mandatory-criteria checklist -> reports/completion_verification.json, nonzero on unmet). (3) per-run completion audit fn. (4) PRETRAIN_READINESS_AUDIT subagent -> reports/PRETRAIN_READINESS_AUDIT.md; resolve criticals. (5) When build_datasets.py (pid 1100073) EXIT_CODE=0: build probes + record dataset_manifest_hashes + save shared init ckpt -> launch Stage 1 lambda=0 first. See state/NEXT_ACTION.md."
+  "git": {
+    "branch": "main",
+    "remote": "git@github.com:czhs/j-pretrain.git",
+    "last_commit": "5ddfce2"
+  },
+  "next_action": "Orchestrator DONE (run.py: DAG loop + GPU lock + parent-lineage load + resume-detect + StageDriver + per-run audit + manifest/inventories; 85 tests, full tiny stage1->2->3 pipeline test passes). RUNNING: build_datasets pid 1100073 (~6 C4 shards, ~15h ETA); PRETRAIN_READINESS_AUDIT subagent (background). NEXT: (1) review readiness audit -> resolve any critical/major before Stage1. (2) When build EXIT_CODE=0: verify 6 manifests + record dataset_manifest_hashes into state; build probes (data/probes.py -> artifacts/probes/); orchestrator auto-creates shared init ckpt on first launch. (3) Launch orchestrator detached in tmux: `HF_HUB_ENABLE_HF_TRANSFER=0 J_PRETRAIN_ARTIFACT_ROOT=/home/hshi-j-4090/Desktop/j-pretrain-artifacts /home/hshi-j-4090/miniconda3/envs/jpre/bin/python -m j_pretrain.orchestration.run` (lambda=0 stage1 first). Monitor via metrics jsonl + inventory; ~10min health checks."
 }

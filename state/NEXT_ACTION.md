@@ -1,67 +1,45 @@
 # NEXT ACTION
 
-**Phase:** orchestration_core_built (gpu-lock + DAG + stage-driver + metrics done; 82 tests pass)
+**Phase:** orchestrator_built (run.py DAG loop + GPU lock + parent-lineage load + resume +
+StageDriver + per-run audit + manifests; 85 tests pass; full tiny stage1->2->3 pipeline test green)
 
-**Process running?** YES — `build_datasets_full` (CPU tokenization, tmux `dbuild`, pid 1100073,
-NOT GPU). Log: `logs/build_datasets_20260721T133614Z.log`. Output:
-`/home/hshi-j-4090/Desktop/j-pretrain-artifacts/datasets`. Resumable (skips complete manifests),
-fails loudly if a pool is short of budget. ~11 min/shard (102.4M tok/shard); C4 alone ~85 shards
-(~15h) + MP + ChemPile. DO NOT restart if healthy. Health-check ~10 min:
-`tail -n 3 <log>; ps -p 1100073 -o etime=; ls <output>/*/*/ | wc -l`. On EXIT_CODE=0 -> all 6
-(source,split) manifests exist; build probes + record dataset_manifest_hashes. On non-zero /
-pool-short -> inspect; genuine short pool = candidate external BLOCKER.
+**Processes running?**
+- `build_datasets` tmux `dbuild` pid 1100073 (CPU tokenize, NOT GPU). Log:
+  `logs/build_datasets_20260721T133614Z.log`. ~6 C4 train shards done; C4 alone ~85 shards (~15h)
+  then MP + ChemPile. Resumable (skips complete manifests). DO NOT restart if healthy. Health-check
+  ~10min: `grep -E '\[done\]|EXIT_CODE' <log> | tail; ps -p 1100073 -o etime=`.
+- `PRETRAIN_READINESS_AUDIT` fresh-context subagent (background) -> writes
+  `reports/PRETRAIN_READINESS_AUDIT.md`. Review its summary on completion; resolve any critical/major
+  BEFORE launching Stage 1.
 
-**CRITICAL OPS NOTE:** Use `/home/hshi-j-4090/miniconda3/envs/jpre/bin/python` DIRECTLY (NOT
-`conda run -n jpre` — swallows heredoc stdout). Set `HF_HUB_ENABLE_HF_TRANSFER=0
-TOKENIZERS_PARALLELISM=false` and `J_PRETRAIN_ARTIFACT_ROOT=/home/hshi-j-4090/Desktop/j-pretrain-artifacts`
-for HF/data ops.
+**CRITICAL OPS:** Use `/home/hshi-j-4090/miniconda3/envs/jpre/bin/python` DIRECTLY (NOT `conda run`).
+For HF/data/GPU ops set `HF_HUB_ENABLE_HF_TRANSFER=0 TOKENIZERS_PARALLELISM=false
+J_PRETRAIN_ARTIFACT_ROOT=/home/hshi-j-4090/Desktop/j-pretrain-artifacts`.
 
-**Last verified (2026-07-21):**
-- 67 tests pass (`pytest tests/ -q`). NEW this iter: `src/j_pretrain/training/` (schedule, dataplan,
-  loader, optim, rngstate, loop) + `src/j_pretrain/artifacts/` (checkpoint, inventory) + StageConfig
-  in config/schemas.py. tests/test_training.py (18) + tests/test_artifacts.py (8).
-- **Deterministic resume test passes** (train N vs train K->save->restart into fresh Trainer->N;
-  losses match abs 1e-5, params allclose). Data order = pure fn of integer cursor (dataplan).
-- Trainer: fp32 master params + bf16 autocast on CUDA (mixed precision, no GradScaler); AdamW
-  b1=.9 b2=.95 clip1.0, cosine+warmup, exact per-source token counters, token-weighted eval CE.
-- Atomic ckpt writer: analysis (bf16 safetensors) + resumable (fp32 model+opt+rng+cursor in
-  training_state.pt); tmp->fsync->checksum->load-test->rename; append-only inventory.
+**Next exact actions (fresh session):**
+1. If readiness-audit report exists: read `reports/PRETRAIN_READINESS_AUDIT.md`; resolve criticals/majors.
+2. Poll build. When `grep EXIT_CODE <log>` shows `EXIT_CODE=0`:
+   - Confirm 6 manifests: `find $ARTIFACT_ROOT/datasets -name manifest.json` (c4/musicpile/chempile x train/val).
+   - Record real dataset_manifest_hashes into state/experiment_state.json (per-manifest sha or n_seqs).
+   - Verify MusicPile train pool >= 292968 windows (300M subset) and C4 train >= 8496093 windows.
+   - Build probes: `python -m` a small driver using j_pretrain.data.probes.build_probe over each
+     val set (256 windows) -> `$ARTIFACT_ROOT/probes/{c4,musicpile,chempile}/` + probe_manifest.json.
+3. Launch orchestrator DETACHED in tmux (ONE GPU job): 
+   `tmux new-session -d -s orch 'HF_HUB_ENABLE_HF_TRANSFER=0 J_PRETRAIN_ARTIFACT_ROOT=/home/hshi-j-4090/Desktop/j-pretrain-artifacts /home/hshi-j-4090/miniconda3/envs/jpre/bin/python -m j_pretrain.orchestration.run 2>&1 | tee logs/orch_$(date -u +%Y%m%dT%H%M%SZ).log'`
+   It auto-creates the shared init ckpt, then runs lambda=0 stage1 first (run_queue order).
+4. Monitor: metrics at `$ARTIFACT_ROOT/run_metrics/<run>__<stage>.jsonl`; ckpt inventory at
+   `artifacts/checkpoint_inventory.jsonl`; experiment_state runs[*][stage]. GPU lock: `state/gpu.lock`.
+   Health-check ~10min; wake on process death / stage completion / disk pressure.
 
-**DONE since last:** orchestration core — `orchestration/gpulock.py` (exclusive GPU lock, stale
-reclaim), `orchestration/dag.py` (run DAG, next_node), `orchestration/stage_driver.py` (StageDriver:
-milestone ckpts + eval + best/early-stop + inventory), `orchestration/metrics.py` (local JSONL +
-wandb). tests/test_orchestration.py (12) + tests/test_stage_driver.py (3). Stage configs, storage
-bench, FEASIBILITY gate PASS, SCOPE_LOCK (ca992877, 5 runs) all done in prior sub-iters.
+**Orchestrator facts:** run_ids `music-300m_lambda-{0.0,0.25,0.5,0.75,1.0}`, seed 1234, ADD policy.
+Stage1 total_steps=(8496093+round(lambda*292968))//512. Stage2/3 total_steps=max_optimizer_steps.
+Stage2 FULL 292968-window subset every lambda (Fig 3a). Exec: microbatch 8, torch_compile OFF (eager,
+stable+deterministic; feasibility PASS at eager <21d), fused AdamW on cuda, bf16 autocast.
 
-**Next exact action (fresh session):**
-1. `cat state/experiment_state.json state/NEXT_ACTION.md state/SCOPE_LOCK.json`; `pytest tests/ -q` (82).
-2. Build orchestrator entrypoint `src/j_pretrain/orchestration/run.py` (`python -m j_pretrain.orchestration.run`):
-   read experiment_state+SCOPE_LOCK, `dag.next_node` (order=run_queue, lambda=0 first), acquire
-   GpuLock(state/gpu.lock), build REAL sources: stage1={c4-train, mp-train(subset prefix)} via
-   PackedDataset + Stage1Plan(lambda_plan windows); stage2=mp-train subset via ShuffledSourcePlan;
-   stage3=chempile-train via ShuffledSourcePlan; val_sets={c4,mp,chempile}-val. Build model, load
-   parent weights (stage1<-init ckpt; stage2<-stage1 final; stage3<-stage2 restored_best). Run
-   StageDriver. Update experiment_state runs[*][stage] + process_registry + run_queue.json. Detached
-   via tmux; resume-detect (load latest valid resumable; never restart healthy). retry<=3.
-3. `scripts/verify_completion.py` — full mandatory-criteria checklist -> reports/completion_verification.json,
-   nonzero on any unmet. (See mission "Completion verifier".)
-4. Per-run completion audit fn (config-hash match, lineage, token counts, ckpts load, metrics complete).
-5. PRETRAIN_READINESS_AUDIT via fresh-context subagent -> reports/PRETRAIN_READINESS_AUDIT.md; resolve
-   criticals BEFORE Stage 1.
-6. When build_datasets.py EXIT_CODE=0: build probes (data/probes.py) + record dataset_manifest_hashes
-   -> save shared init ckpt (seed 1234) -> launch Stage 1 lambda=0 first, detached via orchestrator.
+**Must NOT repeat:** preflight, env, spec, benchmark, configs, data pipeline+tests, tokenizer freeze,
+revision pin, DATA_AUDIT, training+artifacts+orchestration modules+tests, resume tests, verifier, docs.
+**Must NOT:** commit weights/datasets/*.npy/logs/wandb runs; use `conda run`; reduce scope; launch
+Stage 1 before readiness audit reviewed + build EXIT_CODE=0 + probes built; restart healthy build.
 
-**Key facts for entrypoint:** run_ids = music-300m_lambda-{0.0,0.25,0.5,0.75,1.0}; seed 1234;
-Stage1 total_steps per-lambda = (8496093 + round(lambda*292968))//512; Stage2/3 total_steps =
-StageConfig.max_optimizer_steps. Stage2 uses FULL 292968-window subset every lambda. artifact_root =
-/home/hshi-j-4090/Desktop/j-pretrain-artifacts; ckpts under <root>/checkpoints/<run>/<stage>/<class>/.
-
-**Must NOT repeat:** preflight, env, spec, benchmark, config/model, data pipeline+tests, tokenizer
-freeze, revision pin, DATA_AUDIT, training+artifacts modules+tests, resume test (all done).
-**Must NOT:** commit weights/datasets/*.npy/logs/wandb runs; use `conda run`; reduce scope; train
-before readiness audit + scope lock + feasibility gate; restart healthy build_datasets.
-
-**Command to resume orchestrator:** none yet (orchestrator not built).
-**Command to build datasets (full, already running):** `HF_HUB_ENABLE_HF_TRANSFER=0
-TOKENIZERS_PARALLELISM=false J_PRETRAIN_ARTIFACT_ROOT=/home/hshi-j-4090/Desktop/j-pretrain-artifacts
-/home/hshi-j-4090/miniconda3/envs/jpre/bin/python scripts/build_datasets.py`
+**Resume orchestrator (after any crash/gap):** same tmux launch as step 3 — it resume-detects the
+latest valid resumable per (run,stage) and never restarts a healthy/complete node.
