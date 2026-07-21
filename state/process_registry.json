@@ -1,1 +1,21 @@
-{"state_version":1,"updated_at_utc":"2026-07-21T12:38:00Z","processes":[]}
+{
+  "state_version": 2,
+  "updated_at_utc": "2026-07-21T15:15:00Z",
+  "processes": [
+    {
+      "name": "build_datasets_full",
+      "kind": "cpu_tokenization",
+      "status": "active",
+      "tmux_session": "dbuild",
+      "pid": 1100073,
+      "python": "/home/hshi-j-4090/miniconda3/envs/jpre/bin/python",
+      "cmd": "scripts/build_datasets.py",
+      "log": "logs/build_datasets_20260721T133614Z.log",
+      "artifact_root": "/home/hshi-j-4090/Desktop/j-pretrain-artifacts",
+      "output_dir": "/home/hshi-j-4090/Desktop/j-pretrain-artifacts/datasets",
+      "started_at_utc": "2026-07-21T15:14:00Z",
+      "gpu": false,
+      "note": "CPU-only tokenize+pack of C4 8.7B / MusicPile 320M / ChemPile 220M train + vals. Resumable at (source,split) via manifest skip. Fails loudly if a pool is short of budget (would become BLOCKED). Does NOT touch GPU."
+    }
+  ]
+}

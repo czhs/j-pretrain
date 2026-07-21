@@ -107,3 +107,66 @@ class RunSpec:
     subset_tokens: int  # e.g. 300_000_000
     lambda_frac: float  # in {0, 0.25, 0.5, 0.75, 1.0}
     seed: int
+
+
+@dataclass(frozen=True)
+class StageConfig:
+    """Frozen scientific optimizer/schedule/budget for one training stage.
+
+    These are the parameters held IDENTICAL across every lambda condition within a
+    stage (only lambda exposure differs). Kept separate from :class:`ExecConfig`
+    (microbatch/grad-accum/compile) so hardware autotuning never changes the hash.
+
+    ``global_batch_seqs`` is the effective global batch in sequences; tokens per
+    optimizer step == ``global_batch_seqs * seq_len``. ``grad_accum`` is derived at
+    run time from ``global_batch_seqs / microbatch_size`` (execution concern).
+    """
+
+    stage: str  # "stage1" | "stage2" | "stage3"
+    peak_lr: float
+    min_lr: float
+    warmup_steps: int
+    global_batch_seqs: int
+    max_tokens: int
+    seq_len: int = 1024
+    optimizer: str = "adamw"
+    beta1: float = 0.9
+    beta2: float = 0.95
+    eps: float = 1e-8
+    weight_decay: float = 0.1
+    grad_clip: float = 1.0
+    lr_schedule: str = "cosine"  # linear warmup + cosine decay to min_lr
+    seed: int = 0
+    eval_interval_tokens: int = 100_000_000
+    # Stage-2 early stopping (None => run the full max_tokens budget, e.g. Stage 1/3).
+    early_stop_patience: Optional[int] = None
+    early_stop_min_delta: float = 0.0
+    provenance: str = "LOCAL_REPRODUCTION_CHOICE"
+
+    @property
+    def global_batch_tokens(self) -> int:
+        return self.global_batch_seqs * self.seq_len
+
+    @property
+    def max_optimizer_steps(self) -> int:
+        """Total optimizer steps to consume ``max_tokens`` at the global batch."""
+        return self.max_tokens // self.global_batch_tokens
+
+    def grad_accum(self, microbatch_size: int) -> int:
+        if self.global_batch_seqs % microbatch_size != 0:
+            raise ValueError(
+                f"global_batch_seqs {self.global_batch_seqs} not divisible by "
+                f"microbatch_size {microbatch_size}")
+        return self.global_batch_seqs // microbatch_size
+
+    @classmethod
+    def from_json(cls, path: str | Path) -> "StageConfig":
+        raw = json.loads(Path(path).read_text())
+        known = {f.name for f in fields(cls)}
+        return cls(**{k: v for k, v in raw.items() if k in known})
+
+    def scientific_dict(self) -> dict[str, Any]:
+        """Fields that define the training protocol for hashing (excludes provenance)."""
+        d = {f.name: getattr(self, f.name) for f in fields(self)}
+        d.pop("provenance", None)
+        return d
