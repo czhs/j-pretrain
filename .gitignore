@@ -59,3 +59,8 @@ __pycache__/
 *.tmp
 *.tmp/
 tmp_*/
+
+# Transient runtime coordination files (regenerated every iteration; live lock)
+state/WAIT_HINT
+state/WAKE_WHEN
+state/gpu.lock

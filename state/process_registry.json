@@ -1,21 +1,21 @@
 {
-  "state_version": 2,
-  "updated_at_utc": "2026-07-21T15:15:00Z",
+  "updated_at_utc": "2026-07-22T07:23:00Z",
   "processes": [
     {
-      "name": "build_datasets_full",
-      "kind": "cpu_tokenization",
-      "status": "active",
-      "tmux_session": "dbuild",
-      "pid": 1100073,
-      "python": "/home/hshi-j-4090/miniconda3/envs/jpre/bin/python",
-      "cmd": "scripts/build_datasets.py",
-      "log": "logs/build_datasets_20260721T133614Z.log",
-      "artifact_root": "/home/hshi-j-4090/Desktop/j-pretrain-artifacts",
-      "output_dir": "/home/hshi-j-4090/Desktop/j-pretrain-artifacts/datasets",
-      "started_at_utc": "2026-07-21T15:14:00Z",
-      "gpu": false,
-      "note": "CPU-only tokenize+pack of C4 8.7B / MusicPile 320M / ChemPile 220M train + vals. Resumable at (source,split) via manifest skip. Fails loudly if a pool is short of budget (would become BLOCKED). Does NOT touch GPU."
+      "name": "orchestrator",
+      "classification": "active",
+      "kind": "gpu_training",
+      "pid": 1241384,
+      "tmux_session": "orch",
+      "gpu": true,
+      "log": "logs/orch_20260722T072111Z.log",
+      "error_log": "logs/orchestrator_errors.jsonl",
+      "gpu_lock": "state/gpu.lock",
+      "gpu_lock_pid": 1241384,
+      "started_at_utc": "2026-07-22T07:21:12Z",
+      "current_node": "music-300m_lambda-0.0 stage1",
+      "resume_cmd": "tmux new-session -d -s orch 'HF_HUB_ENABLE_HF_TRANSFER=0 TOKENIZERS_PARALLELISM=false J_PRETRAIN_ARTIFACT_ROOT=/home/hshi-j-4090/Desktop/j-pretrain-artifacts /home/hshi-j-4090/miniconda3/envs/jpre/bin/python -m j_pretrain.orchestration.run 2>&1 | tee logs/orch_$(date -u +%Y%m%dT%H%M%SZ).log'",
+      "note": "ONE GPU job at a time. Resume-safe. Do NOT kill on session end. build_datasets (pid 1100073) EXITED 0."
     }
   ]
 }
