@@ -454,11 +454,13 @@ def _record_completion(cfg: OrchestratorConfig, run_id: str, stage: str, summary
         "launch_command": "python -m j_pretrain.orchestration.run",
         "audit_ok": audit["ok"], "completed_at_utc": _now(),
     })
-    _append_jsonl(cfg.artifact_root / "run_artifact_inventory.jsonl", {
+    # Inventories are small append-only records and live in the committed repo tree
+    # (cfg.inventory_dir), alongside checkpoint_inventory.jsonl — not under artifact_root.
+    _append_jsonl(cfg.inventory_dir / "run_artifact_inventory.jsonl", {
         "run_id": run_id, "stage": stage, "metrics_path": summary.get("metrics_path"),
         "checkpoints_dir": str((cfg.artifact_root / "checkpoints" / run_id / stage)),
         "config_hash": summary.get("config_hash"), "git_commit": git, "at_utc": _now()})
-    _append_jsonl(cfg.artifact_root / "backup_status.jsonl", {
+    _append_jsonl(cfg.inventory_dir / "backup_status.jsonl", {
         "run_id": run_id, "stage": stage, "backup_status": "unreplicated_local_copy",
         "at_utc": _now()})
     try:
@@ -466,7 +468,7 @@ def _record_completion(cfg: OrchestratorConfig, run_id: str, stage: str, summary
         free_gb = st.f_bavail * st.f_frsize / (1 << 30)
     except Exception:
         free_gb = None
-    _append_jsonl(cfg.artifact_root / "storage_usage.jsonl", {
+    _append_jsonl(cfg.inventory_dir / "storage_usage.jsonl", {
         "run_id": run_id, "stage": stage, "free_gb": free_gb,
         "checkpoints_bytes": _dir_bytes(cfg.artifact_root / "checkpoints")
         if (cfg.artifact_root / "checkpoints").exists() else 0, "at_utc": _now()})

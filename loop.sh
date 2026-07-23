@@ -27,8 +27,26 @@ while [ "$i" -lt "$1" ]; do
   claude -p "$(cat "$PROMPT_FILE")" --output-format stream-json --verbose --include-partial-messages --max-turns "$MAX_TURNS" --dangerously-skip-permissions 2>&1 | tee "$log" | python3 ralph_pretty.py
   echo "--- end iteration $i (exit ${PIPESTATUS[0]}) ---"
 
-  # Usage/rate limit: sleep and don't count the attempt against the budget
-  if grep -qiE 'hit your session limit|usage limit|rate limit|limit reached|resets at|"rate_limit_event"|api_error_status": ?429' "$log"; then
+  # Usage/rate limit: check the structured result event only (free-text grep
+  # false-positives because the prompt itself discusses usage limits)
+  limited=$(python3 - "$log" << 'PYCHECK'
+import json, sys
+lim = False
+for line in open(sys.argv[1]):
+    if '"type":"result"' not in line:
+        continue
+    try:
+        ev = json.loads(line)
+    except Exception:
+        continue
+    if ev.get('api_error_status') == 429:
+        lim = True
+    elif ev.get('is_error') and 'limit' in str(ev.get('result', '')).lower():
+        lim = True
+print(1 if lim else 0)
+PYCHECK
+)
+  if [ "${limited:-0}" = "1" ]; then
     echo "Usage limit detected; sleeping ${LIMIT_SLEEP}s before retry..."
     i=$((i-1))
     sleep "$LIMIT_SLEEP"
@@ -51,8 +69,19 @@ while [ "$i" -lt "$1" ]; do
     w=${w:-600}
     [ "$w" -gt 3600 ] && w=3600
     [ "$w" -lt 60 ] && w=60
-    echo "Wait hint honored: sleeping ${w}s before next session..."
-    sleep "$w"
+    echo "Wait hint honored: sleeping up to ${w}s (waking early on WAKE_WHEN)..."
+    wait_end=$(( $(date +%s) + w ))
+    while [ "$(date +%s)" -lt "$wait_end" ]; do
+      if [ -f state/WAKE_WHEN ]; then
+        wf=$(sed -n '1p' state/WAKE_WHEN)
+        wp=$(sed -n '2p' state/WAKE_WHEN)
+        if [ -n "$wf" ] && [ -n "$wp" ] && [ -f "$wf" ] && grep -qF -- "$wp" "$wf" 2>/dev/null; then
+          echo "Wake condition met (${wp} in ${wf}); ending wait early."
+          break
+        fi
+      fi
+      sleep 60
+    done
     continue
   fi
 

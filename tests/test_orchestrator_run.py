@@ -142,9 +142,11 @@ def test_full_pipeline_one_lambda(tmp_path):
     assert {m["stage"] for m in man if m["run_id"] == run_id} == {"stage1", "stage2", "stage3"}
     assert all(m["audit_ok"] for m in man)
 
-    # artifact/backup/storage inventories written
+    # artifact/backup/storage inventories written to the COMMITTED inventory dir
+    # (alongside checkpoint_inventory.jsonl), never under the artifact root.
     for name in ("run_artifact_inventory.jsonl", "backup_status.jsonl", "storage_usage.jsonl"):
-        assert (cfg.artifact_root / name).exists()
+        assert (cfg.inventory_dir / name).exists()
+        assert not (cfg.artifact_root / name).exists()
 
     # L_im proxy exists: stage2 final has an mp val metric
     s2_final = next(r for r in recs if r["run_id"] == run_id and r["stage"] == "stage2"

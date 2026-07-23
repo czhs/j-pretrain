@@ -1,273 +1,282 @@
 {
-  "active_processes": [
-    {
-      "current_node": "music-300m_lambda-0.0 stage1 (lambda=0 C4-only, ~16593 steps, eager mb8)",
-      "gpu": true,
-      "gpu_lock": "state/gpu.lock",
-      "kind": "gpu_training",
-      "last_healthcheck_utc": "2026-07-22T07:23:00Z",
-      "log": "logs/orch_20260722T072111Z.log",
-      "name": "orchestrator",
-      "note": "ONE GPU job. Resume-safe: relaunch same tmux cmd; detects latest valid resumable per (run,stage), never restarts healthy node. Health-check ~hourly. GPU 99% util confirmed training. run_metrics jsonl populate at first eval/log interval.",
-      "pid": 1241384,
-      "run_metrics_dir": "$ARTIFACT_ROOT/run_metrics/",
-      "started_at_utc": "2026-07-22T07:21:12Z",
-      "status": "active",
-      "tmux_session": "orch"
-    }
+ "active_processes": [
+  {
+   "current_node": "music-300m_lambda-0.0 stage1 (lambda=0 C4-only, ~16593 steps, eager mb8)",
+   "gpu": true,
+   "gpu_lock": "state/gpu.lock",
+   "kind": "gpu_training",
+   "last_healthcheck_utc": "2026-07-23T20:39:13Z",
+   "log": "logs/orch_20260722T072111Z.log",
+   "name": "orchestrator",
+   "note": "ONE GPU job. Resume-safe: relaunch same tmux cmd; detects latest valid resumable per (run,stage), never restarts healthy node. Health-check ~hourly. GPU 100% util confirmed training. run_metrics jsonl populated.",
+   "pid": 1241384,
+   "progress": "stage1 lambda=0: opt_step 13213, driver_tokens 6.927B/8.7B C4 (~79.6%), eager mb8, train_loss ~3.21, grad_norm ~0.18, lr 1.00e-4. Measured rate ~0.179B tok/h -> ~1.77B left, ETA ~9-10h (~2026-07-24T06:30Z) to end of stage1 lambda=0. analysis snaps thru 6850M; disk 1062G free; GPU 99% 16267MiB 75C; no orchestrator errors. Process up 1d13h. Healthy, no action needed.",
+   "run_metrics_dir": "$ARTIFACT_ROOT/run_metrics/",
+   "started_at_utc": "2026-07-22T07:21:12Z",
+   "status": "active",
+   "tmux_session": "orch"
+  }
+ ],
+ "artifact_root": "/home/hshi-j-4090/Desktop/j-pretrain-artifacts",
+ "backup_status": "none_configured",
+ "benchmark_preliminary": {
+  "compile_mb8_reserved_gb": 9.65,
+  "compile_mb8_tok_s": 94255,
+  "eager_mb8_tok_s": 52497,
+  "exec_default": "torch.compile(default)+bf16+SDPA+fused_AdamW, eager fallback",
+  "feasibility_preliminary": "PASS (~7d compile / ~12-16d eager incl overhead; both < 21d gate)",
+  "microbatch_default": 8,
+  "seq_len": 1024
+ },
+ "completed_milestones": [
+  "preflight",
+  "env_built",
+  "spec_extracted",
+  "spec_audited",
+  "throughput_benchmark_preliminary",
+  "package_scaffold",
+  "config_system",
+  "model_builder_tested_12tests",
+  "data_access_validated",
+  "tokenizer_frozen",
+  "dataset_revisions_pinned",
+  "data_pipeline_built_tested_29tests",
+  "data_driver_smoke_validated",
+  "DATA_AUDIT_written",
+  "artifacts_ckpt_inventory_built_tested_8tests",
+  "training_pipeline_built_tested_18tests",
+  "deterministic_resume_test_passing",
+  "stage_configs_frozen",
+  "storage_bench_measured",
+  "feasibility_gate_PASS",
+  "scope_locked",
+  "gpu_lock_and_dag_tested_12tests",
+  "stage_driver_metrics_tested_3tests",
+  "82_tests_pass",
+  "orchestrator_entrypoint_built",
+  "per_run_audit_fn_built",
+  "orchestrator_integration_test_passing",
+  "85_tests_pass",
+  "pretrain_readiness_audit_READY_18pass",
+  "major1_restored_best_fixed",
+  "probe_builder_built",
+  "tokenizer_dir_hash_reconciled",
+  "87_tests_pass",
+  "analysis_pipeline_built_results_figure",
+  "outcome_classification_criteria_fixed",
+  "training_telemetry_gradnorm_throughput_vram",
+  "91_tests_pass",
+  "datasets_built_6manifests",
+  "probes_built_256each",
+  "dataset_manifest_hashes_recorded",
+  "orchestrator_launched_stage1_lambda0"
+ ],
+ "current_phase": "stage1_training_lambda0",
+ "data_access": {
+  "c4": {
+   "name": "en",
+   "path": "allenai/c4",
+   "streaming_ok": true,
+   "text_key": "text"
+  },
+  "chempile": {
+   "config_decision": "RESOLVED in configs/data/datasets.json: ALL 4 education configs concatenated (deterministic order), revision c653c3c7; LOCAL_REPRODUCTION_CHOICE. Build streams all 4 in _chempile_stream.",
+   "configs": [
+    "LibreText_Chemistry-default",
+    "mit-ocw-lecture-transcripts-default",
+    "us-olympiad-problems-default",
+    "youtube-transcripts-as-lectures-default"
+   ],
+   "path": "jablonkagroup/chempile-education",
+   "requires_config": true
+  },
+  "musicpile": {
+   "format": "Human/Assistant conversational",
+   "path": "m-a-p/MusicPile",
+   "streaming_ok": true,
+   "text_key": "text"
+  },
+  "python_invocation": "/home/hshi-j-4090/miniconda3/envs/jpre/bin/python (NOT conda run)",
+  "tokenizer": {
+   "bos": 0,
+   "eos": 0,
+   "id": "HuggingFaceTB/SmolLM2-135M",
+   "pad": null,
+   "vocab_size": 49152
+  }
+ },
+ "dataset_manifest_hashes": {
+  "c4_revision": "1588ec454efa1a09f29cd18ddd04fe05fc8653a2",
+  "chempile_revision": "c653c3c7bbf599030b80f117b6748ebae406043b",
+  "manifest_counts": {
+   "c4/train": {
+    "n_seqs": 8496094,
+    "n_tokens": 8700000256
+   },
+   "c4/val": {
+    "n_seqs": 19532,
+    "n_tokens": 20000768
+   },
+   "chempile/train": {
+    "n_seqs": 115702,
+    "n_tokens": 118478848
+   },
+   "chempile/val": {
+    "n_seqs": 552,
+    "n_tokens": 565248
+   },
+   "musicpile/train": {
+    "n_seqs": 312500,
+    "n_tokens": 320000000
+   },
+   "musicpile/val": {
+    "n_seqs": 19532,
+    "n_tokens": 20000768
+   }
+  },
+  "manifest_sha256": {
+   "c4/train": "1530de25fb6a8b3eb6f1617b3681dccf668d2388dd565791bc0dcb1887f57541",
+   "c4/val": "661601a63cdd059d9eec1a4383b44165dd38c62d7c2f7c8d43dcd6ed44721b93",
+   "chempile/train": "c162fe070af63e1a04fb9149b8cc9a4381b416bcdd72d5a0de8ddce94637a549",
+   "chempile/val": "7b642e362e39b6336de17c98cfb825e520874f5a93540350dc470cb6dcddc8e4",
+   "musicpile/train": "093ea41f26348d3d53373a03a48c81137366d6c71d83c52b575946e9669a94a0",
+   "musicpile/val": "d4e258c167524d72dab6048a2776025ccb1cf0d1e8665c0296224132afd063d4"
+  },
+  "musicpile_revision": "5930bd7199ddead76ab540901e2187ea4e5fc6a7",
+  "note": "Real per-(source,split) manifest sha256 recorded 2026-07-22 after build EXIT_CODE=0.",
+  "tokenizer_dir_sha256": "658eb5b9c30af1ec103a499c344d1a8a97b45631a2cd8723917041bc5f1af525"
+ },
+ "disk_usage": {
+  "artifact_avail_gb": 1067,
+  "root_avail_gb": 590,
+  "root_use_pct": 83
+ },
+ "env": {
+  "conda_env": "jpre",
+  "datasets": "3.1.0",
+  "python": "3.11.15",
+  "safetensors": "0.4.5",
+  "tokenizers": "0.20.3",
+  "torch": "2.5.1+cu121",
+  "transformers": "4.46.3",
+  "wandb": "0.18.7"
+ },
+ "environment_hash": "a62ab8da1c90ff2822fb188b6845813d74c763ac389f23071827330734814aac",
+ "git": {
+  "branch": "main",
+  "last_commit": "a5cecea",
+  "remote": "git@github.com:czhs/j-pretrain.git"
+ },
+ "latest_checkpoints": {
+  "shared_init_analysis": "init-an-seed1234-7f41081e",
+  "shared_init_resumable": "init-re-seed1234-178e52c9"
+ },
+ "metrics": {},
+ "next_action": "READY for Stage 1 (readiness audit 18 PASS/0 crit; MAJOR-1 restored_best fixed+tested; 87 tests). GATE remaining: build_datasets pid 1100073 must finish (EXIT_CODE=0; ~7/85 C4 shards, ~14h ETA). When done: (1) verify 6 manifests + record real dataset_manifest_hashes + verify MP train>=292968 & C4 train>=8496093 windows; (2) run scripts/build_probes.py; (3) launch orchestrator DETACHED in tmux (python -m j_pretrain.orchestration.run) -> auto-creates shared init ckpt then lambda=0 stage1 first. Monitor via run_metrics jsonl + checkpoint_inventory + experiment_state. See state/NEXT_ACTION.md.",
+ "preflight": {
+  "datasets_reachable": {
+   "c4": "allenai/c4@1588ec45",
+   "chempile": "jablonkagroup/chempile-education@c653c3c7",
+   "musicpile": "m-a-p/MusicPile@5930bd71"
+  },
+  "disk_free_gb": 590,
+  "disk_use_pct": 83,
+  "git_branch_ok": true,
+  "git_push_lsremote_ok": true,
+  "git_remote_ok": true,
+  "gpu_free": true,
+  "gpu_visible": true,
+  "paper_readable": true,
+  "python_env_ready": true,
+  "tools_present": [
+   "tmux",
+   "python",
+   "git",
+   "rg",
+   "jq"
+  ]
+ },
+ "retry_counts": {},
+ "run_queue": [
+  "music-300m_lambda-0.0",
+  "music-300m_lambda-0.25",
+  "music-300m_lambda-0.5",
+  "music-300m_lambda-0.75",
+  "music-300m_lambda-1.0"
+ ],
+ "runs": {
+  "music-300m_lambda-0.0": {
+   "lambda": 0.0,
+   "seed": 1234,
+   "stage1": "running",
+   "stage2": "planned",
+   "stage3": "planned",
+   "subset_tokens": 300000000
+  },
+  "music-300m_lambda-0.25": {
+   "lambda": 0.25,
+   "seed": 1234,
+   "stage1": "planned",
+   "stage2": "planned",
+   "stage3": "planned",
+   "subset_tokens": 300000000
+  },
+  "music-300m_lambda-0.5": {
+   "lambda": 0.5,
+   "seed": 1234,
+   "stage1": "planned",
+   "stage2": "planned",
+   "stage3": "planned",
+   "subset_tokens": 300000000
+  },
+  "music-300m_lambda-0.75": {
+   "lambda": 0.75,
+   "seed": 1234,
+   "stage1": "planned",
+   "stage2": "planned",
+   "stage3": "planned",
+   "subset_tokens": 300000000
+  },
+  "music-300m_lambda-1.0": {
+   "lambda": 1.0,
+   "seed": 1234,
+   "stage1": "planned",
+   "stage2": "planned",
+   "stage3": "planned",
+   "subset_tokens": 300000000
+  }
+ },
+ "schema_version": 1,
+ "scope_hash": "ca992877cf388153d4eb02896c252bc0fddf8291a4b7e0c18bc44cc1252256cc",
+ "spec": {
+  "audit_result": "11/11 confirmed, 0 errors (reports/SPEC_AUDIT.md)",
+  "audited": true,
+  "d_post_tokens": 300000000,
+  "extracted": true,
+  "lambda_grid": [
+   0,
+   0.25,
+   0.5,
+   0.75,
+   1.0
   ],
-  "artifact_root": "/home/hshi-j-4090/Desktop/j-pretrain-artifacts",
-  "backup_status": "none_configured",
-  "benchmark_preliminary": {
-    "compile_mb8_reserved_gb": 9.65,
-    "compile_mb8_tok_s": 94255,
-    "eager_mb8_tok_s": 52497,
-    "exec_default": "torch.compile(default)+bf16+SDPA+fused_AdamW, eager fallback",
-    "feasibility_preliminary": "PASS (~7d compile / ~12-16d eager incl overhead; both < 21d gate)",
-    "microbatch_default": 8,
-    "seq_len": 1024
-  },
-  "completed_milestones": [
-    "preflight",
-    "env_built",
-    "spec_extracted",
-    "spec_audited",
-    "throughput_benchmark_preliminary",
-    "package_scaffold",
-    "config_system",
-    "model_builder_tested_12tests",
-    "data_access_validated",
-    "tokenizer_frozen",
-    "dataset_revisions_pinned",
-    "data_pipeline_built_tested_29tests",
-    "data_driver_smoke_validated",
-    "DATA_AUDIT_written",
-    "artifacts_ckpt_inventory_built_tested_8tests",
-    "training_pipeline_built_tested_18tests",
-    "deterministic_resume_test_passing",
-    "stage_configs_frozen",
-    "storage_bench_measured",
-    "feasibility_gate_PASS",
-    "scope_locked",
-    "gpu_lock_and_dag_tested_12tests",
-    "stage_driver_metrics_tested_3tests",
-    "82_tests_pass",
-    "orchestrator_entrypoint_built",
-    "per_run_audit_fn_built",
-    "orchestrator_integration_test_passing",
-    "85_tests_pass",
-    "pretrain_readiness_audit_READY_18pass",
-    "major1_restored_best_fixed",
-    "probe_builder_built",
-    "tokenizer_dir_hash_reconciled",
-    "87_tests_pass",
-    "analysis_pipeline_built_results_figure",
-    "outcome_classification_criteria_fixed",
-    "training_telemetry_gradnorm_throughput_vram",
-    "91_tests_pass",
-    "datasets_built_6manifests",
-    "probes_built_256each",
-    "dataset_manifest_hashes_recorded",
-    "orchestrator_launched_stage1_lambda0"
-  ],
-  "current_phase": "stage1_training_lambda0",
-  "data_access": {
-    "c4": {
-      "name": "en",
-      "path": "allenai/c4",
-      "streaming_ok": true,
-      "text_key": "text"
-    },
-    "chempile": {
-      "config_decision": "RESOLVED in configs/data/datasets.json: ALL 4 education configs concatenated (deterministic order), revision c653c3c7; LOCAL_REPRODUCTION_CHOICE. Build streams all 4 in _chempile_stream.",
-      "configs": [
-        "LibreText_Chemistry-default",
-        "mit-ocw-lecture-transcripts-default",
-        "us-olympiad-problems-default",
-        "youtube-transcripts-as-lectures-default"
-      ],
-      "path": "jablonkagroup/chempile-education",
-      "requires_config": true
-    },
-    "musicpile": {
-      "format": "Human/Assistant conversational",
-      "path": "m-a-p/MusicPile",
-      "streaming_ok": true,
-      "text_key": "text"
-    },
-    "python_invocation": "/home/hshi-j-4090/miniconda3/envs/jpre/bin/python (NOT conda run)",
-    "tokenizer": {
-      "bos": 0,
-      "eos": 0,
-      "id": "HuggingFaceTB/SmolLM2-135M",
-      "pad": null,
-      "vocab_size": 49152
-    }
-  },
-  "dataset_manifest_hashes": {
-    "c4_revision": "1588ec454efa1a09f29cd18ddd04fe05fc8653a2",
-    "chempile_revision": "c653c3c7bbf599030b80f117b6748ebae406043b",
-    "manifest_counts": {
-      "c4/train": {
-        "n_seqs": 8496094,
-        "n_tokens": 8700000256
-      },
-      "c4/val": {
-        "n_seqs": 19532,
-        "n_tokens": 20000768
-      },
-      "chempile/train": {
-        "n_seqs": 115702,
-        "n_tokens": 118478848
-      },
-      "chempile/val": {
-        "n_seqs": 552,
-        "n_tokens": 565248
-      },
-      "musicpile/train": {
-        "n_seqs": 312500,
-        "n_tokens": 320000000
-      },
-      "musicpile/val": {
-        "n_seqs": 19532,
-        "n_tokens": 20000768
-      }
-    },
-    "manifest_sha256": {
-      "c4/train": "1530de25fb6a8b3eb6f1617b3681dccf668d2388dd565791bc0dcb1887f57541",
-      "c4/val": "661601a63cdd059d9eec1a4383b44165dd38c62d7c2f7c8d43dcd6ed44721b93",
-      "chempile/train": "c162fe070af63e1a04fb9149b8cc9a4381b416bcdd72d5a0de8ddce94637a549",
-      "chempile/val": "7b642e362e39b6336de17c98cfb825e520874f5a93540350dc470cb6dcddc8e4",
-      "musicpile/train": "093ea41f26348d3d53373a03a48c81137366d6c71d83c52b575946e9669a94a0",
-      "musicpile/val": "d4e258c167524d72dab6048a2776025ccb1cf0d1e8665c0296224132afd063d4"
-    },
-    "musicpile_revision": "5930bd7199ddead76ab540901e2187ea4e5fc6a7",
-    "note": "Real per-(source,split) manifest sha256 recorded 2026-07-22 after build EXIT_CODE=0.",
-    "tokenizer_dir_sha256": "658eb5b9c30af1ec103a499c344d1a8a97b45631a2cd8723917041bc5f1af525"
-  },
-  "disk_usage": {
-    "root_avail_gb": 590,
-    "root_use_pct": 83
-  },
-  "env": {
-    "conda_env": "jpre",
-    "datasets": "3.1.0",
-    "python": "3.11.15",
-    "safetensors": "0.4.5",
-    "tokenizers": "0.20.3",
-    "torch": "2.5.1+cu121",
-    "transformers": "4.46.3",
-    "wandb": "0.18.7"
-  },
-  "environment_hash": "a62ab8da1c90ff2822fb188b6845813d74c763ac389f23071827330734814aac",
-  "git": {
-    "branch": "main",
-    "last_commit": "de7f54b",
-    "remote": "git@github.com:czhs/j-pretrain.git"
-  },
-  "latest_checkpoints": {
-    "shared_init_analysis": "init-an-seed1234-7f41081e",
-    "shared_init_resumable": "init-re-seed1234-178e52c9"
-  },
-  "metrics": {},
-  "next_action": "READY for Stage 1 (readiness audit 18 PASS/0 crit; MAJOR-1 restored_best fixed+tested; 87 tests). GATE remaining: build_datasets pid 1100073 must finish (EXIT_CODE=0; ~7/85 C4 shards, ~14h ETA). When done: (1) verify 6 manifests + record real dataset_manifest_hashes + verify MP train>=292968 & C4 train>=8496093 windows; (2) run scripts/build_probes.py; (3) launch orchestrator DETACHED in tmux (python -m j_pretrain.orchestration.run) -> auto-creates shared init ckpt then lambda=0 stage1 first. Monitor via run_metrics jsonl + checkpoint_inventory + experiment_state. See state/NEXT_ACTION.md.",
-  "preflight": {
-    "datasets_reachable": {
-      "c4": "allenai/c4@1588ec45",
-      "chempile": "jablonkagroup/chempile-education@c653c3c7",
-      "musicpile": "m-a-p/MusicPile@5930bd71"
-    },
-    "disk_free_gb": 590,
-    "disk_use_pct": 83,
-    "git_branch_ok": true,
-    "git_push_lsremote_ok": true,
-    "git_remote_ok": true,
-    "gpu_free": true,
-    "gpu_visible": true,
-    "paper_readable": true,
-    "python_env_ready": true,
-    "tools_present": [
-      "tmux",
-      "python",
-      "git",
-      "rg",
-      "jq"
-    ]
-  },
-  "retry_counts": {},
-  "run_queue": [
-    "music-300m_lambda-0.0",
-    "music-300m_lambda-0.25",
-    "music-300m_lambda-0.5",
-    "music-300m_lambda-0.75",
-    "music-300m_lambda-1.0"
-  ],
-  "runs": {
-    "music-300m_lambda-0.0": {
-      "lambda": 0.0,
-      "seed": 1234,
-      "stage1": "running",
-      "stage2": "planned",
-      "stage3": "planned",
-      "subset_tokens": 300000000
-    },
-    "music-300m_lambda-0.25": {
-      "lambda": 0.25,
-      "seed": 1234,
-      "stage1": "planned",
-      "stage2": "planned",
-      "stage3": "planned",
-      "subset_tokens": 300000000
-    },
-    "music-300m_lambda-0.5": {
-      "lambda": 0.5,
-      "seed": 1234,
-      "stage1": "planned",
-      "stage2": "planned",
-      "stage3": "planned",
-      "subset_tokens": 300000000
-    },
-    "music-300m_lambda-0.75": {
-      "lambda": 0.75,
-      "seed": 1234,
-      "stage1": "planned",
-      "stage2": "planned",
-      "stage3": "planned",
-      "subset_tokens": 300000000
-    },
-    "music-300m_lambda-1.0": {
-      "lambda": 1.0,
-      "seed": 1234,
-      "stage1": "planned",
-      "stage2": "planned",
-      "stage3": "planned",
-      "subset_tokens": 300000000
-    }
-  },
-  "schema_version": 1,
-  "scope_hash": "ca992877cf388153d4eb02896c252bc0fddf8291a4b7e0c18bc44cc1252256cc",
-  "spec": {
-    "audit_result": "11/11 confirmed, 0 errors (reports/SPEC_AUDIT.md)",
-    "audited": true,
-    "d_post_tokens": 300000000,
-    "extracted": true,
-    "lambda_grid": [
-      0,
-      0.25,
-      0.5,
-      0.75,
-      1.0
-    ],
-    "lambda_policy": "ADD: C4 fixed 8.7B + lambda*300M MusicPile interleaved (not compute-matched, not C4-replacement)",
-    "model": "SmolLM2-135M (30L/576h/9qh/3kvh GQA/1536mlp/49152vocab/rope1e5/rms1e-5/tied/nobias/init0.0416667/silu)",
-    "param_count_local_build": 134520000,
-    "stage1_c4_tokens_per_run": 8700000000,
-    "stage2_fixed_config_status": "LOCAL provisional (LR5e-4/dropout0/batch480/warmup500/WD0.1/minLR5e-5); finalize via lambda=0 pilot",
-    "stage2_max_tokens": 2000000000,
-    "stage3_lr": 5e-05,
-    "stage3_tokens": 200000000
-  },
-  "spec_hash": "60ee3bde7d45a919d89aac2ca4ccdac1047961520a3c567d25ee822af6a5e313",
-  "state_version": 2,
-  "updated_at_utc": "2026-07-22T07:23:00Z"
+  "lambda_policy": "ADD: C4 fixed 8.7B + lambda*300M MusicPile interleaved (not compute-matched, not C4-replacement)",
+  "model": "SmolLM2-135M (30L/576h/9qh/3kvh GQA/1536mlp/49152vocab/rope1e5/rms1e-5/tied/nobias/init0.0416667/silu)",
+  "param_count_local_build": 134520000,
+  "stage1_c4_tokens_per_run": 8700000000,
+  "stage2_fixed_config_status": "LOCAL provisional (LR5e-4/dropout0/batch480/warmup500/WD0.1/minLR5e-5); finalize via lambda=0 pilot",
+  "stage2_max_tokens": 2000000000,
+  "stage3_lr": 5e-05,
+  "stage3_tokens": 200000000
+ },
+ "spec_hash": "60ee3bde7d45a919d89aac2ca4ccdac1047961520a3c567d25ee822af6a5e313",
+ "state_version": 3,
+ "tests": {
+  "count": 99,
+  "last_run_utc": "2026-07-23T20:39:13Z",
+  "note": "CPU-only run (CUDA_VISIBLE_DEVICES=\"\") so GPU training is undisturbed",
+  "status": "pass",
+  "suite": "tests/"
+ },
+ "updated_at_utc": "2026-07-23T19:32:28Z"
 }

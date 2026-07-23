@@ -3,6 +3,10 @@
 **Phase:** stage1_training_lambda0. Datasets BUILT (6 manifests, EXIT_CODE=0), probes BUILT
 (256 windows each), orchestrator LAUNCHED. Now training `music-300m_lambda-0.0` Stage 1.
 
+**Last verified 2026-07-23T20:39Z:** opt_step 13213, 6.927B/8.7B C4 (~80%), loss ~3.21, no errors,
+disk 1062G free, GPU 99%. Rate ~0.179B tok/h → stage1 lambda=0 ETA ~2026-07-24T06:30Z.
+Full test suite: 99 pass (run CPU-only via `CUDA_VISIBLE_DEVICES=""` so the GPU job is undisturbed).
+
 **Process running?** YES — orchestrator, tmux `orch`, pid 1241384 (GPU). Log:
 `logs/orch_20260722T072111Z.log`. Errors: `logs/orchestrator_errors.jsonl`. GPU lock `state/gpu.lock`.
 Confirmed healthy at launch: GPU 99% util, 6455 MiB, 77°C. Shared init ckpt created

@@ -90,6 +90,14 @@ def _artifact_root() -> Path:
     return Path(st.get("artifact_root", str(REPO / "artifacts")))
 
 
+def _inventory_root() -> Path:
+    """Append-only inventories live in the committed repo tree (see
+    OrchestratorConfig.inventory_dir = REPO_ROOT/"artifacts"), NOT under the
+    artifact root, which holds only weights/datasets/probes/metrics.
+    Checkpoint `rel_path` values remain relative to _artifact_root()."""
+    return REPO / "artifacts"
+
+
 def _git(*args) -> str:
     try:
         return subprocess.run(["git", "-C", str(REPO), *args], capture_output=True,
@@ -130,7 +138,7 @@ def check_config(r: Report):
         r.add(f"frozen_config_{name}", "config", (REPO / p).exists(), p)
     r.add("spec_hash_recorded", "config", bool(st.get("spec_hash")))
     r.add("scope_hash_recorded", "config", bool(st.get("scope_hash")))
-    inv = _load_jsonl(_artifact_root() / "checkpoint_inventory.jsonl")
+    inv = _load_jsonl(_inventory_root() / "checkpoint_inventory.jsonl")
     creates = [x for x in inv if x.get("op") == "create"]
     have_hashes = all(c.get("config_hash") and c.get("git_commit") for c in creates)
     r.add("ckpts_record_config_and_git", "config", have_hashes if creates else False,
@@ -162,9 +170,10 @@ def check_dataset(r: Report):
 
 def check_checkpoints(r: Report):
     root = _artifact_root()
-    inv = _load_jsonl(root / "checkpoint_inventory.jsonl")
+    invroot = _inventory_root()
+    inv = _load_jsonl(invroot / "checkpoint_inventory.jsonl")
     creates = [x for x in inv if x.get("op") == "create"]
-    r.add("inventory_exists", "checkpoints", (root / "checkpoint_inventory.jsonl").exists())
+    r.add("inventory_exists", "checkpoints", (invroot / "checkpoint_inventory.jsonl").exists())
     # every recorded checkpoint has checksums + is present + load-validated
     all_present = bool(creates)
     for c in creates:
@@ -245,7 +254,7 @@ def check_docs(r: Report):
 
 
 def check_artifacts_preservation(r: Report):
-    root = _artifact_root()
+    root = _inventory_root()
     r.add("checkpoint_inventory_validates", "preservation",
           (root / "checkpoint_inventory.jsonl").exists())
     r.add("run_artifact_inventory", "preservation",

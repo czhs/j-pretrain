@@ -86,10 +86,10 @@
     },
     {
       "category": "config",
-      "detail": "no checkpoints yet",
+      "detail": "49 checkpoint records",
       "mandatory": true,
       "name": "ckpts_record_config_and_git",
-      "ok": false
+      "ok": true
     },
     {
       "category": "dataset",
@@ -100,45 +100,45 @@
     },
     {
       "category": "dataset",
-      "detail": "0 (source,split) manifests under /home/hshi-j-4090/Desktop/j-pretrain-artifacts/datasets",
+      "detail": "6 (source,split) manifests under /home/hshi-j-4090/Desktop/j-pretrain-artifacts/datasets",
       "mandatory": true,
       "name": "tokenized_manifests_exist",
-      "ok": false
+      "ok": true
     },
     {
       "category": "dataset",
-      "detail": "no MusicPile train manifest yet",
+      "detail": "MusicPile train packed windows=312500 (need >=292968 for 300M subset)",
       "mandatory": true,
       "name": "musicpile_pool_covers_300M",
-      "ok": false
+      "ok": true
     },
     {
       "category": "dataset",
       "detail": "/home/hshi-j-4090/Desktop/j-pretrain-artifacts/probes/probe_manifest.json",
       "mandatory": true,
       "name": "frozen_probe_manifest",
-      "ok": false
+      "ok": true
     },
     {
       "category": "checkpoints",
       "detail": "",
       "mandatory": true,
       "name": "inventory_exists",
-      "ok": false
+      "ok": true
     },
     {
       "category": "checkpoints",
-      "detail": "no checkpoints yet",
+      "detail": "49 checkpoint records",
       "mandatory": true,
       "name": "all_ckpts_present_checksummed_validated",
-      "ok": false
+      "ok": true
     },
     {
       "category": "checkpoints",
-      "detail": "no checkpoints yet",
+      "detail": "init/incoming snapshot recorded",
       "mandatory": true,
       "name": "init_snapshot_when_started",
-      "ok": false
+      "ok": true
     },
     {
       "category": "results",
@@ -177,10 +177,10 @@
     },
     {
       "category": "tests_audits",
-      "detail": "-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html",
+      "detail": "FAILED tests/test_orchestrator_run.py::test_full_pipeline_one_lambda - Assert...",
       "mandatory": true,
       "name": "tests_pass",
-      "ok": true
+      "ok": false
     },
     {
       "category": "tests_audits",
@@ -194,7 +194,7 @@
       "detail": "",
       "mandatory": true,
       "name": "pretrain_readiness_audit_exists",
-      "ok": false
+      "ok": true
     },
     {
       "category": "tests_audits",
@@ -250,14 +250,14 @@
       "detail": "docs/FAILURE_PLAYBOOK.md",
       "mandatory": true,
       "name": "doc_docs_FAILURE_PLAYBOOK.md",
-      "ok": false
+      "ok": true
     },
     {
       "category": "docs",
       "detail": "docs/FAILURES.md",
       "mandatory": true,
       "name": "doc_docs_FAILURES.md",
-      "ok": false
+      "ok": true
     },
     {
       "category": "docs",
@@ -306,7 +306,7 @@
       "detail": "",
       "mandatory": true,
       "name": "checkpoint_inventory_validates",
-      "ok": false
+      "ok": true
     },
     {
       "category": "preservation",
@@ -345,20 +345,20 @@
     },
     {
       "category": "git",
-      "detail": "4 tracked-file changes (excl logs/wandb)",
+      "detail": "7 tracked-file changes (excl logs/wandb)",
       "mandatory": true,
       "name": "working_tree_clean",
       "ok": false
     },
     {
       "category": "git",
-      "detail": "local=93f4fb4c origin/main=93f4fb4c",
+      "detail": "local=a5ceceaa origin/main=a5ceceaa",
       "mandatory": true,
       "name": "head_pushed_to_origin",
       "ok": true
     }
   ],
   "n_checks": 51,
-  "n_failed_mandatory": 30,
+  "n_failed_mandatory": 20,
   "passed": false
 }
