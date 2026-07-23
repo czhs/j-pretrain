@@ -164,7 +164,8 @@
  "environment_hash": "a62ab8da1c90ff2822fb188b6845813d74c763ac389f23071827330734814aac",
  "git": {
   "branch": "main",
-  "last_commit": "a5cecea",
+  "last_commit": "dd37081",
+  "pushed_to_origin_main": true,
   "remote": "git@github.com:czhs/j-pretrain.git"
  },
  "latest_checkpoints": {
