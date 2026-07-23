@@ -86,7 +86,7 @@
     },
     {
       "category": "config",
-      "detail": "49 checkpoint records",
+      "detail": "51 checkpoint records",
       "mandatory": true,
       "name": "ckpts_record_config_and_git",
       "ok": true
@@ -128,7 +128,7 @@
     },
     {
       "category": "checkpoints",
-      "detail": "49 checkpoint records",
+      "detail": "51 checkpoint records",
       "mandatory": true,
       "name": "all_ckpts_present_checksummed_validated",
       "ok": true
@@ -177,10 +177,10 @@
     },
     {
       "category": "tests_audits",
-      "detail": "FAILED tests/test_orchestrator_run.py::test_full_pipeline_one_lambda - Assert...",
+      "detail": "-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html",
       "mandatory": true,
       "name": "tests_pass",
-      "ok": false
+      "ok": true
     },
     {
       "category": "tests_audits",
@@ -264,7 +264,7 @@
       "detail": "docs/HANDOFF.md",
       "mandatory": true,
       "name": "doc_docs_HANDOFF.md",
-      "ok": false
+      "ok": true
     },
     {
       "category": "docs",
@@ -345,20 +345,20 @@
     },
     {
       "category": "git",
-      "detail": "7 tracked-file changes (excl logs/wandb)",
+      "detail": "2 tracked-file changes (excl logs/wandb)",
       "mandatory": true,
       "name": "working_tree_clean",
       "ok": false
     },
     {
       "category": "git",
-      "detail": "local=a5ceceaa origin/main=a5ceceaa",
+      "detail": "local=618886f1 origin/main=618886f1",
       "mandatory": true,
       "name": "head_pushed_to_origin",
       "ok": true
     }
   ],
   "n_checks": 51,
-  "n_failed_mandatory": 20,
+  "n_failed_mandatory": 18,
   "passed": false
 }

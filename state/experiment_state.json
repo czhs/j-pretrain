@@ -168,12 +168,13 @@
   "pushed_to_origin_main": true,
   "remote": "git@github.com:czhs/j-pretrain.git"
  },
+ "last_health_check_utc": "2026-07-23T21:40Z",
  "latest_checkpoints": {
   "shared_init_analysis": "init-an-seed1234-7f41081e",
   "shared_init_resumable": "init-re-seed1234-178e52c9"
  },
  "metrics": {},
- "next_action": "READY for Stage 1 (readiness audit 18 PASS/0 crit; MAJOR-1 restored_best fixed+tested; 87 tests). GATE remaining: build_datasets pid 1100073 must finish (EXIT_CODE=0; ~7/85 C4 shards, ~14h ETA). When done: (1) verify 6 manifests + record real dataset_manifest_hashes + verify MP train>=292968 & C4 train>=8496093 windows; (2) run scripts/build_probes.py; (3) launch orchestrator DETACHED in tmux (python -m j_pretrain.orchestration.run) -> auto-creates shared init ckpt then lambda=0 stage1 first. Monitor via run_metrics jsonl + checkpoint_inventory + experiment_state. See state/NEXT_ACTION.md.",
+ "next_action": "WAIT for stage1 lambda=0 completion (ETA ~2026-07-24T05:50Z). On stage1->stage2 flip: normal, keep monitoring. On process death/errors: diagnose + resume via process_registry resume_cmd. docs/HANDOFF.md done.",
  "preflight": {
   "datasets_reachable": {
    "c4": "allenai/c4@1588ec45",
