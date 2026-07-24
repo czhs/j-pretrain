@@ -1,6 +1,6 @@
 {
-  "_doc": "PROVISIONAL Stage-2 MusicPile post-training config (measure L_im). Fixed IDENTICALLY across every lambda. Consumed by StageConfig.from_json.",
-  "_provenance_detail": "Table 7 (EXPLICIT_PAPER) gives the 135M Stage-2 search space: LR in {1e-4,2e-4,5e-4,1e-3,5e-3}, min LR 5e-5, warmup 500 (fixed), WD 0.1 (fixed), global batch in {192,480,896}, dropout 0.0. The single (LR,dropout,batch) triple used FOR Fig 3a is UNKNOWN (needs official code). Provisional pick = LR 5e-4, dropout 0.0, global batch 480, max 2B tokens with early stopping. To be FINALIZED via a lambda=0-only preregistered pilot BEFORE the lambda grid, then frozen and applied identically to all conditions (DECISIONS.md).",
+  "_doc": "FROZEN Stage-2 MusicPile post-training config (measure L_im). Fixed IDENTICALLY across every lambda. Consumed by StageConfig.from_json. Numeric/scientific fields FROZEN 2026-07-24 (DECISIONS.md) before any Stage-2 run; provenance/_doc strings are excluded from the run config_hash (StageConfig.scientific_dict drops provenance; from_json drops _doc), so this documentary freeze does not alter any recorded hash.",
+  "_provenance_detail": "Table 7 (EXPLICIT_PAPER) gives the 135M Stage-2 search space: LR in {1e-4,2e-4,5e-4,1e-3,5e-3}, min LR 5e-5, warmup 500 (fixed), WD 0.1 (fixed), global batch in {192,480,896}, dropout 0.0. The single (LR,dropout,batch) triple used FOR Fig 3a is UNKNOWN (needs official code, not released). Config chosen A PRIORI from the search space, WITHOUT viewing any Stage-2 outcome: LR 5e-4 (mid-range of the 5-point LR grid), dropout 0.0 (fixed by Table 7), global batch 480 (mid of {192,480,896}), warmup 500 + WD 0.1 + min LR 5e-5 (all fixed by Table 7), max 2B tokens with MusicPile-val early stopping (patience 3, min_delta 0.0). PREREGISTERED PILOT: the lambda=0 Stage-2 run is a convergence-validation gate that runs to completion BEFORE any nonzero-lambda Stage-2 (DAG ranks the full lambda=0 pipeline first). PASS CRITERION (recorded before any Stage-2 outcome): MusicPile val loss must (a) be finite (no NaN/Inf) throughout, and (b) decrease below the incoming Stage-1->MusicPile eval loss and reach an early-stop/converged minimum. If the pilot FAILS either criterion, this config is revised per the NaN/divergence playbook and every condition is rerun with the corrected config (no nonzero-lambda selection bias, since only lambda=0 outcomes are consulted). If it PASSES, no change: the already-frozen config stands, applied identically to all lambdas. LOCAL_REPRODUCTION_CHOICE, disclosed as a limitation in every report.",
   "_early_stop_note": "Validation-based early stopping on MusicPile val loss; patience = consecutive evals without >= early_stop_min_delta improvement. Restore best-val checkpoint for Stage 3. Uses ONLY the preregistered val criterion (never C4/ChemPile diagnostics).",
   "stage": "stage2",
   "peak_lr": 5e-4,
@@ -20,5 +20,5 @@
   "eval_interval_tokens": 50000000,
   "early_stop_patience": 3,
   "early_stop_min_delta": 0.0,
-  "provenance": "LOCAL_PROVISIONAL_PENDING_PILOT"
+  "provenance": "LOCAL_FROZEN_FIG3A_PREREG_PILOT"
 }
