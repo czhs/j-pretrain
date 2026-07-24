@@ -1,16 +1,16 @@
 {
   "active_processes": [
     {
-      "current_node": "music-300m_lambda-0.0 stage1 (lambda=0 C4-only, ~16593 steps, eager mb8)",
+      "current_node": "music-300m_lambda-0.0 stage2 (MusicPile post-train, full 300M subset, max 2B tok, ES-patience3)",
       "gpu": true,
       "gpu_lock": "state/gpu.lock",
       "kind": "gpu_training",
-      "last_healthcheck_utc": "2026-07-24T04:50:35Z",
+      "last_healthcheck_utc": "2026-07-24T07:00:00Z",
       "log": "logs/orch_20260722T072111Z.log",
       "name": "orchestrator",
-      "note": "ONE GPU job. Resume-safe: relaunch same tmux cmd; detects latest valid resumable per (run,stage), never restarts healthy node. Health-check ~hourly. GPU 100% util confirmed training. run_metrics jsonl populated.",
+      "note": "ONE GPU job. Resume-safe: relaunch same tmux cmd; detects latest valid resumable per (run,stage), never restarts healthy node. Health-check ~hourly. GPU 96% util confirmed training. run_metrics jsonl populated.",
       "pid": 1241384,
-      "progress": "stage1 lambda=0: opt_step 16132, driver_tokens 8.4578B/8.7B C4 (97.2%), eager mb8, train_loss ~3.167, grad_norm ~0.198, lr 5.10e-5. Rate ~0.186B tok/h -> ~0.242B left, ETA ~2026-07-24T06:10Z (~1h20m). Process up 1d21h29m, GPU 100% 16267MiB 77C, orchestrator_errors.jsonl absent (no errors), disk 1054G free. Healthy, no action needed.",
+      "progress": "stage1 lambda=0 COMPLETE (final val_mp=3.5907, val_c4=3.1975, val_chempile=3.3422; audit ok). stage2 lambda=0 RUNNING: opt_step 2, driver 0.98M/2B MP tok, loss 3.56 (decreasing from 3.59 incoming baseline). Incoming ckpts saved. GPU 96% 71C. No errors.",
       "run_metrics_dir": "$ARTIFACT_ROOT/run_metrics/",
       "started_at_utc": "2026-07-22T07:21:12Z",
       "status": "active",
@@ -72,7 +72,7 @@
     "orchestrator_launched_stage1_lambda0",
     "stage2_config_frozen_prereg_pilot_2026-07-24"
   ],
-  "current_phase": "stage1_training_lambda0",
+  "current_phase": "stage2_training_lambda0",
   "data_access": {
     "c4": {
       "name": "en",
@@ -149,7 +149,7 @@
   },
   "disk_usage": {
     "artifact_avail_gb": 1067,
-    "artifact_root_avail_gb": 1055,
+    "artifact_root_avail_gb": 1052,
     "root_avail_gb": 590,
     "root_use_pct": 83
   },
@@ -166,29 +166,33 @@
   "environment_hash": "a62ab8da1c90ff2822fb188b6845813d74c763ac389f23071827330734814aac",
   "git": {
     "branch": "main",
-    "last_commit": "dd37081",
+    "last_commit": "437c778",
     "pushed_to_origin_main": true,
     "remote": "git@github.com:czhs/j-pretrain.git"
   },
-  "last_health_check_utc": "2026-07-24T04:50:35Z",
+  "last_health_check_utc": "2026-07-24T06:11:16Z",
   "latest_checkpoints": {
     "shared_init_analysis": "init-an-seed1234-7f41081e",
     "shared_init_resumable": "init-re-seed1234-178e52c9"
   },
   "metrics": {
-    "stage1_lambda0_progress": {
-      "driver_tokens": 8457814016,
-      "eta_utc": "2026-07-24T06:10Z",
-      "grad_norm": 0.1984,
-      "lr": 5.0974e-05,
-      "measured_rate_b_tok_per_h": 0.186,
-      "opt_step": 16132,
-      "pct": 97.2,
-      "target_c4_tokens": 8700000000,
-      "train_loss": 3.1671
+    "stage1_lambda0_final": {
+      "driver_tokens": 8699510784,
+      "opt_step": 16593,
+      "peak_vram_gb": 15.25,
+      "val_c4": 3.197520784703334,
+      "val_chempile": 3.342210482498548,
+      "val_mp": 3.5907051143331894
+    },
+    "stage2_lambda0_progress": {
+      "driver_tokens": 983040,
+      "incoming_val_mp": 3.5907051143331894,
+      "max_tokens": 2000000000,
+      "opt_step": 2,
+      "train_loss": 3.5626373370488484
     }
   },
-  "next_action": "WAIT for stage1 lambda=0 completion (ETA ~2026-07-24T06:10Z, 92.8% done). On stage1->stage2 flip: normal, keep monitoring. On process death/errors: diagnose + resume via process_registry resume_cmd.",
+  "next_action": "MONITOR stage2 lambda=0 (running, opt_step 2, max 2B MP tok w/ ES-patience3; ETA hours). On stage2 COMPLETE: run preregistered PILOT PASS CHECK (DECISIONS.md 2026-07-24) - MP val loss finite throughout, decreased below incoming, reached ES/converged min. PASS->record+continue (DAG proceeds to lambda=0 stage3, then nonzero-lambda pipelines). FAIL->NaN/divergence playbook. On death/errors: diagnose+resume via tmux relaunch (resume-safe).",
   "preflight": {
     "datasets_reachable": {
       "c4": "allenai/c4@1588ec45",
@@ -222,10 +226,10 @@
   ],
   "runs": {
     "music-300m_lambda-0.0": {
-      "lambda": 0.0,
+      "lambda": 0,
       "seed": 1234,
-      "stage1": "running",
-      "stage2": "planned",
+      "stage1": "complete",
+      "stage2": "running",
       "stage3": "planned",
       "subset_tokens": 300000000
     },
@@ -254,7 +258,7 @@
       "subset_tokens": 300000000
     },
     "music-300m_lambda-1.0": {
-      "lambda": 1.0,
+      "lambda": 1,
       "seed": 1234,
       "stage1": "planned",
       "stage2": "planned",
@@ -274,7 +278,7 @@
       0.25,
       0.5,
       0.75,
-      1.0
+      1
     ],
     "lambda_policy": "ADD: C4 fixed 8.7B + lambda*300M MusicPile interleaved (not compute-matched, not C4-replacement)",
     "model": "SmolLM2-135M (30L/576h/9qh/3kvh GQA/1536mlp/49152vocab/rope1e5/rms1e-5/tied/nobias/init0.0416667/silu)",
@@ -294,5 +298,5 @@
     "status": "pass",
     "suite": "tests/"
   },
-  "updated_at_utc": "2026-07-24T05:20:00Z"
+  "updated_at_utc": "2026-07-24T07:00:00Z"
 }
