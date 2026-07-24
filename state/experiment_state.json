@@ -1,16 +1,16 @@
 {
   "active_processes": [
     {
-      "current_node": "music-300m_lambda-0.0 stage3 (ChemPile FT, lr 5e-5, 200M tok budget)",
+      "current_node": "music-300m_lambda-0.25 stage1 (C4 8.7B + 75M MP interleaved, lambda=0.25)",
       "gpu": true,
       "gpu_lock": "state/gpu.lock",
       "kind": "gpu_training",
-      "last_healthcheck_utc": "2026-07-24T16:52:00Z",
+      "last_healthcheck_utc": "2026-07-24T19:04Z",
       "log": "logs/orch_20260722T072111Z.log",
       "name": "orchestrator",
-      "note": "ONE GPU job. Resume-safe: relaunch same tmux cmd; detects latest valid resumable per (run,stage), never restarts healthy node. Health-check ~hourly. GPU 100% util confirmed training. run_metrics jsonl populated. Throughput ~150M MP tok/hr observed. NOTE: system wall clock ~matches ledger stamps now; etime authoritative for true elapsed (start 07-22T07:21Z + 2d08h).",
+      "note": "ONE GPU job. Resume-safe: relaunch same tmux cmd; detects latest valid resumable per (run,stage), never restarts healthy node. Health-check ~hourly. GPU 99% util confirmed training. run_metrics jsonl populated. Stage1 ~8.7B C4 tok node is the LONG one (~2-3 days). etime authoritative for elapsed (start 07-22T07:21:12Z).",
       "pid": 1241384,
-      "progress": "stage1+stage2 lambda=0 COMPLETE+audited. Pilot PASS (L_im=2.2311, ES step3264 restored best step2958). stage3 lambda=0 RUNNING: opt_step 4, driver 1.97M/200M ChemPile tok, train_loss 3.199, lr warming. GPU 99% 76C 16.3G. No errors. etime 2d09h. Stage3 ETA ~1-2h.",
+      "progress": "FULL lambda=0 condition COMPLETE (stage1+2+3, audited). Stage3 lambda=0 final: L_ret(val_mp)=2.3948, L_ft(val_chempile)=2.1574, L_pre(val_c4)=3.7238, L_im=2.2311, forgetting=0.1637. DAG advanced: lambda=0.25 stage1 INITIALIZING (wandb run created 12:03:31Z; data-loader spinning up, no metric rows yet). GPU 99% 16.3G. No errors.",
       "run_metrics_dir": "$ARTIFACT_ROOT/run_metrics/",
       "started_at_utc": "2026-07-22T07:21:12Z",
       "status": "active",
@@ -72,7 +72,7 @@
     "orchestrator_launched_stage1_lambda0",
     "stage2_config_frozen_prereg_pilot_2026-07-24"
   ],
-  "current_phase": "stage3_training_lambda0",
+  "current_phase": "stage1_training_lambda0.25",
   "data_access": {
     "c4": {
       "name": "en",
@@ -166,11 +166,11 @@
   "environment_hash": "a62ab8da1c90ff2822fb188b6845813d74c763ac389f23071827330734814aac",
   "git": {
     "branch": "main",
-    "last_commit": "71c6334",
+    "last_commit": "62c155c",
     "pushed_to_origin_main": true,
     "remote": "git@github.com:czhs/j-pretrain.git"
   },
-  "last_health_check_utc": "2026-07-24T16:52:00Z",
+  "last_health_check_utc": "2026-07-24T19:04Z",
   "latest_checkpoints": {
     "shared_init_analysis": "init-an-seed1234-7f41081e",
     "shared_init_resumable": "init-re-seed1234-178e52c9"
@@ -190,21 +190,25 @@
       "best_val_mp_tokens": 1453916160,
       "early_stop_step": 3264,
       "incoming_val_mp": 3.5907051143331894,
-      "pilot_result": "PASS",
       "pilot_recorded": "DECISIONS.md 2026-07-24; per_run_audits/music-300m_lambda-0.0__stage2.json ok:true",
+      "pilot_result": "PASS",
       "val_c4_at_best": 3.6411592114510896,
       "val_chempile_at_best": 3.1518013518971935
     },
-    "stage3_lambda0_progress": {
+    "stage3_lambda0_final": {
+      "L_ft": 2.1573971309756708,
+      "L_im": 2.2310721982352124,
+      "L_pre": 3.723827147168536,
+      "L_ret": 2.3948005889731214,
       "budget_tokens": 200000000,
-      "driver_tokens": 1966080,
-      "grad_norm": 1.3209134340286255,
-      "lr": 2e-06,
-      "opt_step": 4,
-      "train_loss": 3.199295981725057
+      "driver_tokens": 199557120,
+      "forgetting_Lret_minus_Lim": 0.163728390737909,
+      "opt_step": 406,
+      "peak_vram_gb": 15.264735221862793,
+      "train_loss": 2.1419117649396258
     }
   },
-  "next_action": "MONITOR stage3 lambda=0 (running, ChemPile FT lr 5e-5, 200M tok budget; ETA ~1-2h). Pilot already PASSED - no config gates remain. On stage3 COMPLETE: per-run audit auto + final L_ret/L_ft/L_pre eval; DAG proceeds to lambda=0.25 stage1 (8.7B C4 + 75M MP, ~2-3d). On death/errors: diagnose+resume via tmux relaunch (resume-safe, never restarts healthy node). Hourly health-check otherwise.",
+  "next_action": "MONITOR lambda=0.25 stage1 (running, C4 8.7B + 75M MP interleaved; LONG node ~2-3d). No config gates remain (all Stage-1/2/3 FROZEN). Full lambda=0 condition COMPLETE+audited. On death/errors: diagnose+resume via tmux relaunch (resume-safe, never restarts healthy node). Hourly health-check otherwise; ETA to next actionable event is days, so WAIT_HINT=3600.",
   "preflight": {
     "datasets_reachable": {
       "c4": "allenai/c4@1588ec45",
@@ -242,13 +246,13 @@
       "seed": 1234,
       "stage1": "complete",
       "stage2": "complete",
-      "stage3": "running",
+      "stage3": "complete",
       "subset_tokens": 300000000
     },
     "music-300m_lambda-0.25": {
       "lambda": 0.25,
       "seed": 1234,
-      "stage1": "planned",
+      "stage1": "running",
       "stage2": "planned",
       "stage3": "planned",
       "subset_tokens": 300000000
@@ -310,5 +314,5 @@
     "status": "pass",
     "suite": "tests/"
   },
-  "updated_at_utc": "2026-07-24T16:52:00Z"
+  "updated_at_utc": "2026-07-24T19:05:00Z"
 }
