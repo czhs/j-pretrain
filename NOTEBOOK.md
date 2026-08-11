@@ -276,18 +276,49 @@ planning, not `--test-only`.
 
 ---
 
-## 7. Open items
+## 7. Launch state — 2026-08-11 ~20:00 UTC
 
-- [ ] C4 transfer to PSC (17 GB, leg 2 in progress)
-- [ ] Smoke test on PSC before committing 5 long jobs
-- [ ] Launch the 4 grid conditions + λ=0 control
-- [ ] Implement the J-lens / J-space module (M1–M5) and validate on the finished λ=0 checkpoints
-- [ ] Register the 4090's key with the PSC portal (owner action, see I-2)
-- [ ] AirLab is quota-blocked by an ERROR'd instance from another project — see §8
+Five conditions submitted, ten Slurm jobs:
+
+| condition | λ | job name | GPU-shared (heads chain) | ROBO (overflow) |
+|---|---|---|---|---|
+| music-300m_lambda-0.25 | 0.25 | `jp-l025` | 43366617 | 43366618 |
+| music-300m_lambda-0.5 | 0.5 | `jp-l05` | 43366619 | 43366620 |
+| music-300m_lambda-0.75 | 0.75 | `jp-l075` | 43366621 | 43366622 |
+| music-300m_lambda-1.0 | 1.0 | `jp-l10` | 43366623 | 43366624 |
+| music-300m_lambda-0.0-ctl | 0 (control) | `jp-l00c` | 43366625 | 43366626 |
+
+**Why GPU-shared heads each chain (revision of D-1).** The original plan was ROBO-only (free,
+7-day walltime). Two facts changed it: (a) the account's Robo balance is −222,377 SU, which
+tanks fairshare — a 10-minute ROBO probe sat `PENDING (Priority)` for 25+ min with 8 GPUs
+visibly free; (b) `--dependency=singleton` waits for the prior same-named job to *terminate*,
+not to *start*, so submitting to both partitions serializes rather than races, and a true
+multi-partition job is impossible here (ROBO nodes expose no features, and ROBO/GPU-shared have
+incompatible partition QOS). So GPU-shared heads each chain for a predictable start (~1,800 SU,
+9% of the 20,059 balance, expiring 2026-09-30 anyway), with the free ROBO job queued behind it
+as genuine overflow if GPU-shared hits its 48 h walltime first.
+
+**Nothing trains until the gate opens.** `gate.sh` on PSC releases
+`$ART/datasets/.C4_READY` only after: env build done → repo test suite passes on PSC →
+all six packed datasets open with `len()` matching the manifest **and** every shard sha256
+verified → shared-init checkpoint loads. Jobs poll for that marker and exit cleanly (successor
+retries) rather than training on a truncated corpus. Stage 1 consumes 8,496,093 of C4's
+8,496,094 windows, so a partial transfer would otherwise fail deep into the run.
+
+## 8. Open items
+
+- [ ] C4 transfer to PSC (17 GB, in flight)
+- [ ] Confirm gate released and first stage-1 steps logging
+- [ ] **Measure real H100 tok/s and replace the estimated 1.8–2.2× speedup with a number**
+- [ ] Implement the J-lens / J-space module (M1–M5); validate on the finished λ=0 checkpoints
+      (which exist on the 4090 and need pulling for analysis)
+- [ ] Register the 4090's key with the PSC portal (owner action, see I-2) — would make future
+      transfers ~10× faster
+- [ ] AirLab is quota-blocked by an ERROR'd instance from another project — see §9
 
 ---
 
-## 8. AirLab Cloud — checked 2026-08-11, not usable for this project
+## 9. AirLab Cloud — checked 2026-08-11, not usable for this project
 
 Live query via `openstack` (app credential works from the Mac without VPN; only the floating
 IPs need CMU network).
