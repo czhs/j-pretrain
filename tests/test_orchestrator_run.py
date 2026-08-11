@@ -176,3 +176,37 @@ def test_resume_after_interrupted_stage(tmp_path):
     recs1b = {r["checkpoint_id"] for r in inv.read_inventory(cfg.ckpt_inventory)
               if r["op"] == "create" and r["run_id"] == run_id and r["stage"] == "stage1"}
     assert recs1b == s1_ids, "stage1 checkpoints must be unchanged after resume"
+
+
+def test_stale_running_node_is_reclaimed_and_resumed(tmp_path):
+    """A node left ``running`` by a crash/shelve must be rescheduled, not orphaned.
+
+    Regression: ``dag.is_ready`` only schedules ``planned`` nodes, so before the
+    reclaim pass an interrupted stage stayed ``running`` forever and the orchestrator
+    silently skipped ahead to a different run.
+    """
+    cfg, run_id = _build_cfg(tmp_path)
+    r1 = orun.orchestrate(cfg, max_nodes=1, init_wandb_fn=_no_wandb)
+    assert r1["processed"] == [f"{run_id}::stage1"]
+    # simulate a kill in the middle of stage2: status stuck at "running"
+    orun._set_stage_status(cfg, run_id, "stage2", "running")
+    r2 = orun.orchestrate(cfg, init_wandb_fn=_no_wandb)
+    assert r2["status"] == "complete", r2
+    state = json.loads(cfg.experiment_state_path.read_text())
+    assert state["runs"][run_id]["stage2"] == "complete"
+    assert state["runs"][run_id]["stage3"] == "complete"
+    reclaims = [json.loads(l) for l in
+                (cfg.repo_root / "logs" / "orchestrator_reclaims.jsonl").read_text().splitlines()]
+    assert any(r["node"] == f"{run_id}::stage2" and r["from"] == "running"
+               and r["to"] == "planned" for r in reclaims)
+
+
+def test_reclaim_blocks_node_past_retry_limit(tmp_path):
+    """Reclaim must not loop forever on a deterministically failing node."""
+    cfg, run_id = _build_cfg(tmp_path)
+    orun._set_stage_status(cfg, run_id, "stage1", "failed_retryable")
+    state = json.loads(cfg.experiment_state_path.read_text())
+    state["retry_counts"] = {f"{run_id}::stage1": orun.MAX_RETRIES + 1}
+    cfg.experiment_state_path.write_text(json.dumps(state))
+    recs = orun.reclaim_stale_nodes(cfg)
+    assert {r["node"]: r["to"] for r in recs}[f"{run_id}::stage1"] == "failed_blocked"

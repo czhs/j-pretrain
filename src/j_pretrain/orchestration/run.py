@@ -439,6 +439,55 @@ def _set_stage_status(cfg: OrchestratorConfig, run_id: str, stage: str, value: s
     return value
 
 
+#: Statuses that mean "started but not finished". Once the GPU lock is held no other
+#: trainer can exist, so any node left in one of these is stale (crash / manual shelve /
+#: usage-limit kill) and must be returned to ``planned`` or the DAG orphans it forever
+#: (``dag.is_ready`` only ever schedules ``planned`` nodes).
+RECLAIMABLE = set(dag.IN_PROGRESS) | {"failed_retryable"}
+MAX_RETRIES = 3
+
+
+def _retry_count(cfg: OrchestratorConfig, key: str) -> int:
+    state = _load_json(cfg.experiment_state_path) or {}
+    return int(state.get("retry_counts", {}).get(key, 0))
+
+
+def _bump_retry(cfg: OrchestratorConfig, key: str) -> int:
+    """Persist the retry counter so the ≤3 limit survives orchestrator restarts."""
+    state = _load_json(cfg.experiment_state_path) or {}
+    n = int(state.setdefault("retry_counts", {}).get(key, 0)) + 1
+    state["retry_counts"][key] = n
+    state["updated_at_utc"] = _now()
+    _atomic_write_json(cfg.experiment_state_path, state)
+    return n
+
+
+def reclaim_stale_nodes(cfg: OrchestratorConfig) -> list[dict]:
+    """Return stale in-progress / retryable nodes to ``planned`` so they get rescheduled.
+
+    Only safe to call while holding the GPU lock (guarantees no live trainer owns the
+    node). Nodes past ``MAX_RETRIES`` become ``failed_blocked`` instead of looping.
+    Rescheduling never restarts finished work: :func:`run_node` resume-detects the
+    latest valid resumable and continues byte-exact, and a stage that already reached
+    ``total_steps`` short-circuits via the crash-after-final guard.
+    """
+    state = _load_json(cfg.experiment_state_path) or {}
+    reclaimed: list[dict] = []
+    for run_id in cfg.run_ids:
+        for stage in dag.STAGES:
+            key = f"{run_id}::{stage}"
+            old = state.get("runs", {}).get(run_id, {}).get(stage, "planned")
+            if old not in RECLAIMABLE:
+                continue
+            new = "planned" if _retry_count(cfg, key) <= MAX_RETRIES else "failed_blocked"
+            _set_stage_status(cfg, run_id, stage, new)
+            rec = {"node": key, "from": old, "to": new, "at_utc": _now(),
+                   "reason": "stale_no_live_owner_gpu_lock_held"}
+            _append_jsonl(cfg.repo_root / "logs" / "orchestrator_reclaims.jsonl", rec)
+            reclaimed.append(rec)
+    return reclaimed
+
+
 def _record_completion(cfg: OrchestratorConfig, run_id: str, stage: str, summary: dict,
                        audit: dict) -> None:
     git = _git_commit(cfg.repo_root)
@@ -490,7 +539,11 @@ def orchestrate(cfg: OrchestratorConfig, max_nodes: Optional[int] = None,
         except GpuLockError as e:
             return {"status": "lock_held", "detail": str(e)}
     ensure_init_checkpoint(cfg)
-    processed, retry_counts = [], {}
+    reclaimed = reclaim_stale_nodes(cfg)
+    for rec in reclaimed:
+        print(f"[orchestrator] reclaimed stale node {rec['node']}: "
+              f"{rec['from']} -> {rec['to']}", flush=True)
+    processed = []
     try:
         while max_nodes is None or len(processed) < max_nodes:
             state = _load_json(cfg.experiment_state_path) or {}
@@ -507,24 +560,26 @@ def orchestrate(cfg: OrchestratorConfig, max_nodes: Optional[int] = None,
                 audit = audit_node(cfg, node.run_id, node.stage,
                                    summary.get("config_hash", ""))
                 if not audit["ok"]:
-                    _set_stage_status(cfg, node.run_id, node.stage, "failed_retryable")
                     _record_completion(cfg, node.run_id, node.stage, summary, audit)
-                    retry_counts[key] = retry_counts.get(key, 0) + 1
-                    if retry_counts[key] > 3:
+                    n = _bump_retry(cfg, key)
+                    if n > MAX_RETRIES:
                         _set_stage_status(cfg, node.run_id, node.stage, "failed_blocked")
                         return {"status": "audit_failed", "node": key, "audit": audit,
                                 "processed": processed}
+                    # back to ``planned`` so the DAG reschedules this same node
+                    _set_stage_status(cfg, node.run_id, node.stage, "planned")
                     continue
                 _record_completion(cfg, node.run_id, node.stage, summary, audit)
                 _set_stage_status(cfg, node.run_id, node.stage, "complete")
                 processed.append(key)
             except Exception as e:  # noqa: BLE001 — record + retry per mission failure policy
-                retry_counts[key] = retry_counts.get(key, 0) + 1
-                status_val = "failed_blocked" if retry_counts[key] > 3 else "failed_retryable"
+                n = _bump_retry(cfg, key)
+                # ``planned`` (not ``failed_retryable``) so the node is actually retried:
+                # run_node resumes from the latest valid resumable, never from scratch.
+                status_val = "failed_blocked" if n > MAX_RETRIES else "planned"
                 _set_stage_status(cfg, node.run_id, node.stage, status_val)
                 _append_jsonl(cfg.repo_root / "logs" / "orchestrator_errors.jsonl",
-                              {"node": key, "error": repr(e), "retry": retry_counts[key],
-                               "at_utc": _now()})
+                              {"node": key, "error": repr(e), "retry": n, "at_utc": _now()})
                 if status_val == "failed_blocked":
                     return {"status": "node_failed", "node": key, "error": repr(e),
                             "processed": processed}

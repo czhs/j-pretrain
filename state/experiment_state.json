@@ -5,14 +5,14 @@
       "gpu": true,
       "gpu_lock": "state/gpu.lock",
       "kind": "gpu_training",
-      "last_healthcheck_utc": "2026-07-24T19:04Z",
-      "log": "logs/orch_20260722T072111Z.log",
+      "last_healthcheck_utc": "2026-07-24T22:22Z",
+      "log": "logs/orch_20260724T221742Z.log",
       "name": "orchestrator",
-      "note": "ONE GPU job. Resume-safe: relaunch same tmux cmd; detects latest valid resumable per (run,stage), never restarts healthy node. Health-check ~hourly. GPU 99% util confirmed training. run_metrics jsonl populated. Stage1 ~8.7B C4 tok node is the LONG one (~2-3 days). etime authoritative for elapsed (start 07-22T07:21:12Z).",
-      "pid": 1241384,
-      "progress": "FULL lambda=0 condition COMPLETE (stage1+2+3, audited). Stage3 lambda=0 final: L_ret(val_mp)=2.3948, L_ft(val_chempile)=2.1574, L_pre(val_c4)=3.7238, L_im=2.2311, forgetting=0.1637. DAG advanced: lambda=0.25 stage1 INITIALIZING (wandb run created 12:03:31Z; data-loader spinning up, no metric rows yet). GPU 99% 16.3G. No errors.",
+      "note": "ONE GPU job. Resume-safe: relaunch same tmux cmd; detects latest valid resumable per (run,stage), never restarts healthy node. Health-check ~hourly. GPU 99% util confirmed training. run_metrics jsonl populated. Stage1 ~8.7B C4 tok node is the LONG one (~2-3 days). etime authoritative for elapsed (start 07-22T07:21:12Z). UN-SHELVED 2026-07-24T22:17Z; startup now reclaims stale non-terminal nodes (GPU lock held => no live owner).",
+      "pid": 1468831,
+      "progress": "lambda=0.25 stage1 at driver_tokens ~511M/8775M (~5.8%), opt_step 975, train_loss ~4.78, grad_norm ~0.55. GPU 99%/17.9GiB. Resumed from shelve ckpt step954 byte-exact (no compute lost).",
       "run_metrics_dir": "$ARTIFACT_ROOT/run_metrics/",
-      "started_at_utc": "2026-07-22T07:21:12Z",
+      "started_at_utc": "2026-07-24T22:17:43Z",
       "status": "active",
       "tmux_session": "orch"
     }
@@ -166,11 +166,11 @@
   "environment_hash": "a62ab8da1c90ff2822fb188b6845813d74c763ac389f23071827330734814aac",
   "git": {
     "branch": "main",
-    "last_commit": "62c155c",
+    "last_commit": "61a5dbc",
     "pushed_to_origin_main": true,
     "remote": "git@github.com:czhs/j-pretrain.git"
   },
-  "last_health_check_utc": "2026-07-24T19:04Z",
+  "last_health_check_utc": "2026-07-24T21:12Z",
   "latest_checkpoints": {
     "shared_init_analysis": "init-an-seed1234-7f41081e",
     "shared_init_resumable": "init-re-seed1234-178e52c9"
@@ -208,7 +208,7 @@
       "train_loss": 2.1419117649396258
     }
   },
-  "next_action": "MONITOR lambda=0.25 stage1 (running, C4 8.7B + 75M MP interleaved; LONG node ~2-3d). No config gates remain (all Stage-1/2/3 FROZEN). Full lambda=0 condition COMPLETE+audited. On death/errors: diagnose+resume via tmux relaunch (resume-safe, never restarts healthy node). Hourly health-check otherwise; ETA to next actionable event is days, so WAIT_HINT=3600.",
+  "next_action": "MONITOR lambda=0.25 stage1 (resumed byte-exact after manual shelve; orchestrator pid 1468831, tmux orch). LONG node. On event:final -> auto per-run audit -> DAG advances to lambda=0.25 stage2. Hourly health-check; WAIT_HINT=3600.",
   "preflight": {
     "datasets_reachable": {
       "c4": "allenai/c4@1588ec45",
@@ -314,5 +314,5 @@
     "status": "pass",
     "suite": "tests/"
   },
-  "updated_at_utc": "2026-07-24T19:05:00Z"
+  "updated_at_utc": "2026-07-24T22:22Z"
 }
