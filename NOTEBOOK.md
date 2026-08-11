@@ -115,6 +115,23 @@ yields, by causality, `Σ_{t'≥t} ∂h_final,t'[j]/∂h_ℓ,t` for **every** so
 **every** layer ℓ at once. So the full J_ℓ for all 30 layers costs d_model = 576 backward
 passes per prompt batch, not 576 × layers × positions. Tractable.
 
+**Prompt corpora.** The existing `probes/` sets are exactly right and require no new data:
+256 fixed windows per corpus (c4 / musicpile / chempile), taken as a deterministic prefix of
+each frozen val split, with pinned dataset revisions and recorded shard sha256. The *same*
+probe tokens are used for every checkpoint of every run, so cross-condition J-lens
+comparisons are apples-to-apples by construction.
+
+### 1.5 Implementation status
+
+`src/j_pretrain/analysis/jlens.py` — built and tested (commit `398f04e`):
+`jlens_batch` / `compute_jlens` (J_ℓ), `jlens_dictionary` (W_U J_ℓ), `gradient_pursuit`
+(sparse **nonnegative** decomposition), `principal_angles` / `subspace_overlap` (M1 primitive).
+
+Both compute shortcuts above are easy to get subtly wrong, so `jlens_batch` is verified
+against `jlens_batch_reference`, a naive one-backward-per-output-dim implementation, in
+`tests/test_jlens.py` (11 tests, all passing). Also asserted: chunk size doesn't change the
+result, all-layers-in-one-pass equals per-layer calls, and the lens never pollutes `.grad`.
+
 ---
 
 ## 2. Where things stand
@@ -251,6 +268,45 @@ an entitlement problem — given the account's Robo GPU balance sits at −222,3
 misread as "you are out of SUs and blocked". It is not: it is a cascade of the first error.
 `--mem=100G` submits fine. **ROBO is usable for this account.**
 
+### I-7 — Queued a 184.9 GB transfer where 0.98 GB was needed *(caught and fixed)*
+Staging the finished λ=0 condition for J-space analysis, the whole
+`checkpoints/music-300m_lambda-0.0` tree was queued without looking at its composition:
+
+| class | size | purpose |
+|---|---:|---|
+| **resumable** | **142.6 GB** | optimizer + RNG state, only for restarting training |
+| analysis | 42.3 GB | weights only (~127 snapshots @ 0.33 GB) |
+
+λ=0 is **complete** — nothing will ever resume it — and the J-lens reads weights only. Worse,
+of the analysis snapshots the measurements need exactly three: θ_pre (stage1 `final`),
+θ_post (stage2 `restored_best`), θ_ft (stage3 `final`). **0.98 GB, not 184.9 GB** — a ~190×
+overshoot, ~7 hours of transfer avoided.
+
+General lesson for this project: checkpoint *class* matters as much as run/stage when moving
+artifacts. The permanent-retention policy means resumables dominate on-disk size (142.6 of
+184.9 GB here) and are almost never what analysis wants. It also reframes co-location: each
+condition's analysis needs ~1 GB, so all five conditions move ~5 GB total and the J-space
+comparison can run on either machine. There was never a reason to move 700 GB.
+
+### I-8 — Bulk rsync starves interactive SSH on the same ControlMaster *(worked around)*
+Once the Mac started pushing shards, every `ssh bridges2` status check began timing out at
+120 s. Cause: connection sharing multiplexes all channels over **one** TCP connection, so
+interactive commands queue behind rsync's bulk data. Fix: pass `-o ControlPath=none` for
+status checks (the Mac's key authenticates fresh connections fine). Only the *4090* is
+dependent on its master socket.
+
+### I-9 — PSC ingest is single-stream capped; parallel senders fix it *(fixed)*
+Direct 4090→PSC rsync sustained **2.8 MB/s** — no better than the Mac relay — despite the
+4090 uplinking at 38 MB/s to a public speed test. So the limit is per-TCP-connection ingest
+into PSC (81 ms RTT, single stream), not the source uplink.
+
+Parallel streams are the standard fix but are blocked here: only the ControlMaster socket
+authenticates, and its channels share one TCP connection. Workaround: use **two different
+senders** — the Mac (which still had 71 of 85 C4 shards staged from the earlier relay) and
+the 4090 — splitting the shard range. They land on different PSC login nodes (br012/br013)
+and get independent caps: **2.8 → 6.6 MB/s**. The Mac works top-down from shard 70 while the
+4090 works bottom-up, so they never collide; rsync skips already-matching files at the seam.
+
 ### I-6 — Slurm `--test-only` start times are alarming but not predictive *(understood)*
 `--test-only` reported starts 8–10 days out for 48h GPU jobs. That is the *guaranteed* start
 assuming no backfill. Empirically, over 7 days of accounting (33k GPU jobs), H100 jobs
@@ -307,11 +363,15 @@ retries) rather than training on a truncated corpus. Stage 1 consumes 8,496,093 
 
 ## 8. Open items
 
-- [ ] C4 transfer to PSC (17 GB, in flight)
+- [x] PSC env built — torch 2.5.1+cu121, transformers 4.46.3, datasets 3.1.0,
+      tokenizers 0.20.3, safetensors 0.4.5, numpy 2.1.3 (exactly the pinned set)
+- [x] Probe sets (256 windows × 3 corpora) staged to PSC — the J-space prompt corpora
+- [x] J-lens instrument implemented and verified (`398f04e`)
+- [ ] C4 transfer to PSC (in flight, two senders)
 - [ ] Confirm gate released and first stage-1 steps logging
 - [ ] **Measure real H100 tok/s and replace the estimated 1.8–2.2× speedup with a number**
-- [ ] Implement the J-lens / J-space module (M1–M5); validate on the finished λ=0 checkpoints
-      (which exist on the 4090 and need pulling for analysis)
+- [ ] Build the M1–M5 measurement driver on top of `jlens.py`; validate against the λ=0
+      θ_pre/θ_post/θ_ft snapshots (0.98 GB, queued behind C4)
 - [ ] Register the 4090's key with the PSC portal (owner action, see I-2) — would make future
       transfers ~10× faster
 - [ ] AirLab is quota-blocked by an ERROR'd instance from another project — see §9
