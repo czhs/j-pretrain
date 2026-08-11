@@ -268,6 +268,50 @@ an entitlement problem — given the account's Robo GPU balance sits at −222,3
 misread as "you are out of SUs and blocked". It is not: it is a cascade of the first error.
 `--mem=100G` submits fine. **ROBO is usable for this account.**
 
+### I-11 — Sparse-coding step size diverged; unit tests could not see it *(fixed)*
+First run of `jlens_characterize.py` against the real λ=0 θ_post checkpoint returned
+**negative** reconstruction fractions — `c4=-0.417`, `chempile=-2.993` — i.e. the sparse
+J-space fit was *worse than predicting zero*, which is impossible for a correctly solved
+nonnegative least squares (c = 0 is always feasible).
+
+Two compounding causes in `gradient_pursuit`:
+1. Step size was `1/max(diag(A A^T))`, which is **always exactly 1.0** for a row-normalized
+   dictionary. The correct Lipschitz constant is `1/λ_max(A A^T)`. Any correlated active set
+   with λ_max > 2 makes the iteration unstable — and the J-lens dictionary is extremely
+   coherent, packing 49,152 vectors into 576 dimensions.
+2. Coefficients were **warm-started** across pursuit iterations, so a bad state persisted
+   and compounded instead of being re-solved.
+
+Fixed: extracted `nnls_projected_gradient`, step `1/λ_max`, fresh start per active set.
+Real data confirms: `-0.417 / -2.993` → `+0.032 / +0.032`.
+
+**The methodological lesson, which is the real content here.** The original unit tests
+passed the whole time. They used a *random* dictionary, and random atoms in low dimensions
+are near-orthogonal, so λ_max ≈ 1 and a step of 1.0 is fine. The bug only exists for
+coherent dictionaries — exactly what real ones are.
+
+Worse, when I then tried to write a proper regression test, **I could not reproduce the
+failure synthetically.** With nonnegativity clamping the bad step oscillates (0 → 2 → 0)
+and lands at exactly `‖x‖`, never beyond it; producing something *worse* than zero required
+the wrong step *and* warm-starting *and* a real dictionary's structure. My first attempt at
+a regression test passed under both the buggy and fixed code — worthless as a guard, and I
+only found that out by explicitly asserting it should fail.
+
+Resolution, in order of value:
+- The solver now **guarantees** the invariant (checks the objective against c = 0 and falls
+  back to zeros), so a numerical problem can degrade an estimate but can never emit a
+  nonsensical negative explained-variance downstream.
+- `test_nnls_never_worse_than_zero_across_random_coherent_cases` pins that guarantee over
+  many random coherent problems.
+- The notebook records that the bug was caught by **running on a real checkpoint**, not by
+  the test suite. Generalization: for numerical code, a green unit suite on synthetic inputs
+  is weak evidence. Validate the analysis path against real artifacts early — that is
+  precisely why the λ=0 snapshots were staged before the other conditions finished.
+
+Open follow-up: reconstruction at k=10 is only ~3% of activation variance, but J was
+estimated from just 4 windows at seq_len 64 on CPU for this smoke test. Needs a proper
+estimate before reading anything into the number.
+
 ### I-10 — Login-node daemons silently die; PSC round-robins login nodes *(fixed)*
 The validation gate was first written as a `setsid nohup` daemon on a login node. It got
 through the env-build wait, started the test suite, reached 65 of 101 tests, and **stopped** —

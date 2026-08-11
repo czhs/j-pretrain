@@ -194,17 +194,55 @@ def jlens_dictionary(J: torch.Tensor, unembed: torch.Tensor,
     return D
 
 
+def nnls_projected_gradient(A: torch.Tensor, x: torch.Tensor,
+                            n_steps: int = 64) -> torch.Tensor:
+    """min_{c >= 0} ||A^T c - x||^2 by projected gradient descent. ``A`` is [m, d].
+
+    Split out from :func:`gradient_pursuit` so the step size can be tested directly
+    against an adversarially coherent active set — inducing that active set through
+    matching pursuit is unreliable, because pursuit tends to pick *incoherent* atoms
+    (each new atom is chosen against a residual already orthogonalized to the previous
+    ones), which is exactly why the first attempt at a regression test passed while real
+    data diverged. See NOTEBOOK I-11.
+
+    Step size is ``1 / lambda_max(A A^T)``, the true Lipschitz constant of the gradient.
+    ``1 / max(diag(A A^T))`` is always 1.0 for a row-normalized dictionary and diverges
+    whenever ``lambda_max > 2``, i.e. whenever the active atoms are correlated at all.
+    """
+    G = (A @ A.t()).float()
+    Ax = (A @ x).float()
+    lmax = torch.linalg.eigvalsh(G.double()).max().clamp_min(1e-12).float()
+    step = 1.0 / lmax
+    coef = torch.zeros(A.shape[0], device=x.device)
+    for _ in range(max(1, n_steps)):
+        coef = (coef - step * (G @ coef - Ax)).clamp_min(0.0)
+    # Guarantee the invariant the analysis depends on: the fit is never worse than c = 0.
+    # c = 0 is always feasible, so a solution that loses to it means the iteration failed.
+    # Enforcing it here means a numerical problem can degrade an estimate but can never
+    # produce a nonsensical negative "explained variance" downstream (NOTEBOOK I-11).
+    if not torch.isfinite(coef).all():
+        return torch.zeros_like(coef)
+    obj = float(coef @ (G @ coef) / 2 - coef @ Ax)          # ||A^T c - x||^2/2 - ||x||^2/2
+    return coef if obj <= 0.0 else torch.zeros_like(coef)
+
+
 def gradient_pursuit(x: torch.Tensor, D: torch.Tensor, k: int = 25,
-                     n_steps: int = 1) -> tuple[torch.Tensor, torch.Tensor]:
+                     n_steps: int = 64) -> tuple[torch.Tensor, torch.Tensor]:
     """Sparse **nonnegative** approximation of ``x`` by <= k rows of ``D``.
 
     Matching-pursuit style: repeatedly take the dictionary row with the largest positive
-    correlation with the residual, then refit the active set with a few projected-gradient
-    steps (nonnegativity by clamping). Returns ``(indices [k], coeffs [k])``.
+    correlation with the residual, then refit the active set by projected gradient descent
+    (nonnegativity by clamping). Returns ``(indices [m], coeffs [m])`` with m <= k.
 
     Nonnegativity matters: the J-space is defined as a sparse *nonnegative* combination,
     so "this concept is active" is meaningful and cancellation between opposite-signed
     dictionary atoms is disallowed.
+
+    The step size is ``1 / lambda_max(A A^T)``, the correct Lipschitz constant for the
+    active-set least-squares objective. Using ``1 / max(diag(A A^T))`` instead — which is
+    always 1.0 for a row-normalized dictionary — silently diverges whenever the selected
+    atoms are correlated, and the J-lens dictionary is extremely coherent (49152 vectors
+    in 576 dimensions). See NOTEBOOK I-11.
     """
     x = x.float()
     D = D.float()
@@ -220,11 +258,7 @@ def gradient_pursuit(x: torch.Tensor, D: torch.Tensor, k: int = 25,
             break
         idx.append(best)
         A = D[torch.tensor(idx, device=x.device)]          # [m, d]
-        coef = torch.cat([coef, torch.zeros(1, device=x.device)])
-        for _ in range(max(1, n_steps) * 8):               # projected gradient, nonneg
-            grad = A @ (A.t() @ coef - x)
-            step = 1.0 / (A @ A.t()).diagonal().clamp_min(1e-8).max()
-            coef = (coef - step * grad).clamp_min(0.0)
+        coef = nnls_projected_gradient(A, x, n_steps=n_steps)
         residual = x - A.t() @ coef
     if not idx:
         return (torch.zeros(0, dtype=torch.long, device=x.device),

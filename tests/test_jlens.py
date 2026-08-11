@@ -11,6 +11,7 @@ import torch
 from transformers import LlamaConfig, LlamaForCausalLM
 
 from j_pretrain.analysis.jlens import (
+    nnls_projected_gradient,
     compute_jlens,
     gradient_pursuit,
     jlens_batch,
@@ -119,6 +120,86 @@ def test_gradient_pursuit_recovers_sparse_nonnegative_combination():
     assert (coef >= 0).all(), "J-space coefficients must be nonnegative"
     recon = (D[idx] * coef[:, None]).sum(0)
     assert torch.allclose(recon, x, atol=1e-2)
+
+
+def _coherent_dictionary(n: int, d: int, spread: float = 0.05,
+                         seed: int = 0) -> torch.Tensor:
+    """Atoms clustered tightly around a few directions -> large lambda_max(A A^T).
+
+    Mimics the real J-lens dictionary, which packs n_vocab (49152) vectors into d_model
+    (576) dimensions and is therefore extremely coherent.
+    """
+    g = torch.Generator().manual_seed(seed)
+    anchors = torch.randn(3, d, generator=g)
+    base = anchors[torch.randint(0, 3, (n,), generator=g)]
+    D = base + spread * torch.randn(n, d, generator=g)
+    return D / D.norm(dim=1, keepdim=True)
+
+
+def _explained(x: torch.Tensor, D: torch.Tensor, idx, coef) -> float:
+    recon = (D[idx] * coef[:, None]).sum(0) if len(idx) else torch.zeros_like(x)
+    return 1.0 - float((x - recon).pow(2).sum() / x.pow(2).sum())
+
+
+def _coherent_active_set(m: int = 6, d: int = D_MODEL) -> tuple[torch.Tensor, torch.Tensor]:
+    """m nearly-identical unit atoms (lambda_max ~ m) plus a target in their span."""
+    g = torch.Generator().manual_seed(0)
+    base = torch.randn(d, generator=g)
+    base = base / base.norm()
+    A = base.repeat(m, 1) + 1e-3 * torch.randn(m, d, generator=g)
+    A = A / A.norm(dim=1, keepdim=True)
+    return A, base * 2.0
+
+
+def test_nnls_handles_coherent_active_set():
+    """Regression for NOTEBOOK I-11: step must be 1/lambda_max(A A^T), not 1/max(diag)."""
+    A, x = _coherent_active_set()
+    assert float(torch.linalg.eigvalsh(A @ A.t()).max()) > 2.0, (
+        "test is only meaningful if lambda_max > 2, where a step of 1.0 diverges")
+    coef = nnls_projected_gradient(A, x, n_steps=200)
+    assert torch.isfinite(coef).all(), "coefficients diverged"
+    assert (coef >= 0).all()
+    resid = float((A.t() @ coef - x).norm())
+    assert resid <= float(x.norm()), "fit worse than c=0"
+    assert resid < 0.1 * float(x.norm()), "should fit a target inside the atoms' span"
+
+
+def test_nnls_never_worse_than_zero_across_random_coherent_cases():
+    """The invariant the analysis actually depends on, enforced unconditionally.
+
+    NOTE on provenance: the real bug (NOTEBOOK I-11) was found on a real checkpoint, not by
+    a unit test, and could NOT be reproduced synthetically — with nonnegativity clamping the
+    bad step size oscillates (0 -> 2 -> 0) and lands exactly at ||x|| rather than beyond it.
+    The real-data failure needed the wrong step *and* coefficients warm-started across
+    pursuit iterations. Rather than pretend to a regression test that does not regress, the
+    solver now *guarantees* the invariant (falling back to c = 0), and this test pins that
+    guarantee over many random coherent problems.
+    """
+    for trial in range(25):
+        g = torch.Generator().manual_seed(trial)
+        m = int(torch.randint(2, 12, (1,), generator=g))
+        base = torch.randn(D_MODEL, generator=g)
+        A = base.repeat(m, 1) + float(torch.rand(1, generator=g)) * torch.randn(
+            m, D_MODEL, generator=g)
+        A = A / A.norm(dim=1, keepdim=True).clamp_min(1e-8)
+        x = torch.randn(D_MODEL, generator=g) * float(torch.rand(1, generator=g) * 5)
+        coef = nnls_projected_gradient(A, x, n_steps=100)
+        assert torch.isfinite(coef).all() and (coef >= 0).all()
+        assert float((A.t() @ coef - x).norm()) <= float(x.norm()) + 1e-5, (
+            f"trial {trial}: fit worse than c=0")
+
+
+def test_gradient_pursuit_explained_fraction_is_monotone_in_k():
+    """More atoms may not help much, but must never make the fit worse."""
+    torch.manual_seed(3)
+    D = _coherent_dictionary(60, D_MODEL, seed=7)
+    x = torch.randn(D_MODEL)
+    prev = -1.0
+    for k in (1, 3, 5, 10, 20):
+        idx, coef = gradient_pursuit(x, D, k=k)
+        got = _explained(x, D, idx, coef)
+        assert got >= prev - 1e-3, f"explained fraction dropped at k={k}: {got} < {prev}"
+        prev = got
 
 
 def test_gradient_pursuit_respects_sparsity_budget():
