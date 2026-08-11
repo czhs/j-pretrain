@@ -169,6 +169,31 @@ Note the orchestrator runs **eager** (`torch_compile=False`, `run.py:164`) while
 benchmark measured 94k tok/s compiled vs 52k eager. We are leaving ~1.8× on the table; see
 decision D-4.
 
+### 2.3 Measured H100 throughput and VRAM (2026-08-11, job 43370296)
+
+`scripts/bench_throughput.py` on one H100-80, eager, seq_len 1024 — replacing the previously
+*estimated* 1.8–2.2× speedup with a number:
+
+| microbatch | tok/s | vs 4090 (52,497) | gain | peak alloc | peak reserved |
+|---:|---:|---:|---:|---:|---:|
+| **8** (current) | 90,745 | **1.73×** | — | 15.9 GB | 16.6 GB |
+| 16 | 100,508 | 1.91× | +10.8% | 29.7 GB | 31.9 GB |
+| 24 | 106,471 | 2.03× | +5.9% | 43.7 GB | 47.5 GB |
+| 32 | 107,712 | 2.05× | +1.2% | 57.3 GB | 62.8 GB |
+| 48 | OOM on 80 GB | — | — | — | — |
+
+**At matched settings the H100 is 1.73×, below the 1.8–2.2× I estimated.** The estimate was
+optimistic; 2× needs a microbatch change (declined, D-7). Per condition: **34.4 h**.
+
+VRAM behaves exactly as the memory model predicted (~1.75 GB per microbatch unit + ~2 GB
+fixed): mb=32 landed at 57.3 GB against a predicted ~58 GB, and mb=48 OOM'd as predicted.
+Memory here is a *vocabulary* problem, not a parameter-count one — the fp32 cross-entropy
+over 49,152 tokens is ~80% of the footprint, while the 134.5M params plus AdamW state are
+~2.4 GB.
+
+Throughput saturates fast (8→16 is +10.8%, 24→32 only +1.2%), so the idle 62 GB on an H100
+is not recoverable performance — the model is too small to use it.
+
 ---
 
 ## 3. Infrastructure — the PSC port
@@ -216,6 +241,7 @@ seeing the `DONE` marker.
 | D-4 | **Keep `torch_compile=False`.** | H100 already gives ~2×; changing hardware *and* execution mode at once compounds numerical confounds against the finished λ=0. Not worth 1.8× here. |
 | D-5 | **Disable wandb** (`--no-wandb`). | PSC compute nodes have no outbound internet. The `run_metrics/*.jsonl` stream is the source of truth anyway. |
 | D-6 | **Keep the `env` dict (and so `environment_hash`) unchanged.** | It records *package* versions, which are pinned identically on PSC. Accurate as-is. The hardware change belongs in this notebook and `docs/ENVIRONMENT.md`, not in a package-version hash. |
+| D-7 | **Keep microbatch at 8 on H100**, despite ~62 GB of the card sitting idle. | See §2.3 — raising it to 24 is worth ~17% wall-clock (34.4 h → 29.3 h per condition) and is explicitly sanctioned (ExecConfig is hardware-tuned, excluded from the config hash, grad-accum preserves the frozen global batch). Declined anyway: the λ=0 control's job is to isolate the *hardware* change, and altering microbatch too would mean two variables move at once, so a discrepancy would be unattributable. ~5 h on a multi-day run is a bad trade for a weaker control. Revisit if the schedule tightens. |
 
 ---
 
