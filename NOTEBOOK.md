@@ -268,6 +268,28 @@ an entitlement problem — given the account's Robo GPU balance sits at −222,3
 misread as "you are out of SUs and blocked". It is not: it is a cascade of the first error.
 `--mem=100G` submits fine. **ROBO is usable for this account.**
 
+### I-10 — Login-node daemons silently die; PSC round-robins login nodes *(fixed)*
+The validation gate was first written as a `setsid nohup` daemon on a login node. It got
+through the env-build wait, started the test suite, reached 65 of 101 tests, and **stopped** —
+no error, no log entry, process gone.
+
+Two compounding causes:
+1. PSC **reaps long-running / CPU-heavy processes on login nodes**. A full test suite (which
+   runs real training steps) is exactly what that policy targets. Running it there was my
+   mistake, not a quirk.
+2. `ssh bridges2` is **load-balanced across login nodes** (br012 / br013 / br014 observed).
+   So a follow-up `ps` can land on a different node and show nothing, making a live process
+   look dead and a dead one impossible to confirm. The `.ib` hostnames are internal, so you
+   cannot check a specific login node from outside either.
+
+Fix: the gate is now a **Slurm batch job** (`slurm/gate.sbatch`, RM-shared, 4 cores) — it is
+scheduled, not reaped, its stdout is a real job log, and its state is visible via `squeue`.
+Cost is ~1 SU against the 5,816 remaining RM balance.
+
+**General rule for this project: nothing long-running goes on a PSC login node.** Batch job or
+it does not exist. The bulk transfers are the exception only because they are driven from the
+Mac and the 4090, with PSC merely receiving.
+
 ### I-7 — Queued a 184.9 GB transfer where 0.98 GB was needed *(caught and fixed)*
 Staging the finished λ=0 condition for J-space analysis, the whole
 `checkpoints/music-300m_lambda-0.0` tree was queued without looking at its composition:
