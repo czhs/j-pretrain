@@ -194,6 +194,60 @@ over 49,152 tokens is ~80% of the footprint, while the 134.5M params plus AdamW 
 Throughput saturates fast (8→16 is +10.8%, 24→32 only +1.2%), so the idle 62 GB on an H100
 is not recoverable performance — the model is too small to use it.
 
+### 2.4 First trustworthy J-space measurements — λ=0 θ_post (2026-08-12)
+
+Machine `hshi-u1` (RTX 3060 8 GB), converged solver (I-12) + robust per-token metric (I-13),
+two independent seeds at 128 samples, C4-derived lens, 64 probe windows, seq_len 256.
+
+| layer | eff. rank | median per-token recon @k=50 (c4 / mp / chem) | max seed Δ | MP/C4 |
+|---:|---:|---|---:|---:|
+| 4 | 98.6 | 0.072 / 0.071 / 0.079 | 0.010 | 0.99 |
+| 10 | 110.8 | 0.081 / 0.069 / 0.075 | 0.005 | **0.85** |
+| 14 | 143.9 | 0.103 / 0.088 / 0.098 | 0.010 | **0.86** |
+| 20 | 196.0 | 0.137 / 0.127 / 0.111 | 0.005 | 0.93 |
+| 25 | 289.7 | 0.170 / 0.178 / 0.146 | 0.003 | **1.05** |
+
+**Established (survives seeds, machines, sequence lengths, and two different solvers):**
+
+1. **Effective rank of J_ℓ grows ~3× with depth: 99 → 290 of 576 dimensions.** Bit-identical
+   across seeds; replicated on the 4090 at seq_len 512 and on the 3060 at 256. This is the
+   quantity that never routes through the sparse solver, and it behaved accordingly.
+2. **Median per-token J-space reconstruction rises with depth, ~7% → ~17% at k=50.** That
+   the ~10% scale shows up in a 30-layer / d=576 model at all is notable given the original
+   workspace figure came from a far larger model — but note our k=50 vs their k≈25, so this
+   is a coincidence of magnitude, not a matched comparison.
+3. **The metric is now usable for cross-condition work**: worst seed-to-seed Δ 0.010,
+   typically 0.003–0.005, versus 0.077 under the naive aggregate (≈8× noise reduction).
+
+**Suggestive, NOT established:** MusicPile sits slightly *below* C4 in mid-layers (MP/C4 ≈
+0.85 at layers 10 and 14) and slightly *above* by layer 25 (1.05). The magnitudes (Δ≈0.012–
+0.015) are only ~1.5–3× seed noise, so no single number is safe. What raises this above
+nothing is that **the sign is consistent across both seeds at all five layers**. Note also
+this is a ~10× weaker version of the pattern the contaminated run screamed (MP/C4 0.21–0.32) —
+a good reminder that a broken estimator can inflate a faint asymmetry into a headline.
+
+### 2.5 Pre-registered prediction for the λ sweep
+
+Recorded **before any λ>0 checkpoint exists**, so M1/M2 are a test rather than a fit.
+
+λ=0 is the condition *without* early exposure. Paper Thm 5.2 says post-training from
+θ^unmixed cannot use specialized features (absent at init, they stay absent) and must instead
+distort *inconsistent* features shared with D_pre. If the mid-layer MP/C4 < 1 asymmetry above
+is that absence showing up in the J-space, then:
+
+> **Prediction.** As λ increases, MusicPile's median per-token J-space reconstruction in
+> mid-layers (≈10–14) should **rise** — both absolutely and relative to C4 — approaching or
+> exceeding MP/C4 ≈ 1. λ=0 should remain the lowest. C4's own reconstruction should be
+> roughly flat in λ, since C4 exposure is held fixed at 8.7B tokens across all conditions.
+>
+> **Falsified if** MP/C4 in mid-layers is flat in λ (within the ±0.01 seed band), or moves
+> the other way. A flat result would mean early exposure does not reorganize the
+> output-directed geometry at this scale, and the Thm 5.1–5.3 mechanism would need a
+> different instrument than the J-lens to detect — worth reporting either way.
+
+Effective rank is the natural secondary readout: if mixing adds dedicated directions rather
+than reweighting existing ones (Thm 5.2), eff. rank in mid-layers should grow with λ.
+
 ---
 
 ## 3. Infrastructure — the PSC port
