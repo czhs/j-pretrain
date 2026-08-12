@@ -282,6 +282,38 @@ def gradient_pursuit(x: torch.Tensor, D: torch.Tensor, k: int = 25,
     return torch.tensor(best_idx, dtype=torch.long, device=x.device), best_coef
 
 
+def pursuit_residual_path(x: torch.Tensor, D: torch.Tensor, k_max: int = 50,
+                          n_steps: int = 500) -> torch.Tensor:
+    """Best residual norm achievable with 1..k_max atoms, in ONE pursuit pass.
+
+    Returns a tensor of length ``k_max`` whose i-th entry is the smallest residual seen
+    using at most i+1 atoms. Non-increasing by construction, so explained variance derived
+    from it is monotone in k — the invariant that caught NOTEBOOK I-12.
+
+    Computing the whole k-curve in one pass is ~len(k_grid)x cheaper than re-running the
+    pursuit per k, which matters because each refit is 500 FISTA iterations.
+    """
+    x = x.float()
+    D = D.float()
+    residual = x.clone()
+    idx: list[int] = []
+    best = float(x.norm())
+    out = torch.full((k_max,), best, device=x.device)
+    for i in range(k_max):
+        corr = D @ residual
+        if idx:
+            corr[torch.tensor(idx, device=x.device)] = -float("inf")
+        j = int(torch.argmax(corr))
+        if corr[j] > 0:
+            idx.append(j)
+            A = D[torch.tensor(idx, device=x.device)]
+            coef = nnls_projected_gradient(A, x, n_steps=n_steps)
+            residual = x - A.t() @ coef
+            best = min(best, float(residual.norm()))
+        out[i] = best
+    return out
+
+
 def principal_angles(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
     """Principal angles (radians, ascending) between the column spaces of A and B.
 

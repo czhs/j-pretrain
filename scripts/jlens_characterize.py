@@ -28,8 +28,8 @@ import torch
 
 from j_pretrain.analysis.jlens import (
     compute_jlens,
-    gradient_pursuit,
     jlens_dictionary,
+    pursuit_residual_path,
 )
 from j_pretrain.artifacts import checkpoint as ck
 from j_pretrain.data.shards import PackedDataset
@@ -69,18 +69,22 @@ def effective_rank(sv: torch.Tensor) -> float:
     return float(p.sum().pow(2) / p.pow(2).sum().clamp_min(1e-30))
 
 
-def reconstruction_fraction(acts: torch.Tensor, D: torch.Tensor, k: int,
-                            n_samples: int = 64) -> float:
-    """Mean fraction of ||x||^2 explained by a <=k-atom nonnegative J-space fit."""
+def reconstruction_curve(acts: torch.Tensor, D: torch.Tensor, k_grid: list,
+                         n_samples: int = 32) -> dict:
+    """Explained variance at each k in ``k_grid``, from ONE pursuit pass per sample.
+
+    Aggregated as 1 - sum_i||x_i - recon_i||^2 / sum_i||x_i||^2. Monotone in k because
+    :func:`pursuit_residual_path` returns a non-increasing best-residual path.
+    """
     idxs = torch.randperm(acts.shape[0])[:n_samples]
-    num = den = 0.0
+    k_max = max(k_grid)
+    num = torch.zeros(k_max, device=acts.device)
+    den = 0.0
     for i in idxs:
         x = acts[i]
-        sel, coef = gradient_pursuit(x, D, k=k)
-        recon = (D[sel] * coef[:, None]).sum(0) if len(sel) else torch.zeros_like(x)
-        num += float((x - recon).pow(2).sum())
+        num += pursuit_residual_path(x, D, k_max=k_max).pow(2)
         den += float(x.pow(2).sum())
-    return 1.0 - num / max(den, 1e-30)
+    return {str(k): 1.0 - float(num[k - 1]) / max(den, 1e-30) for k in k_grid}
 
 
 def main() -> int:
@@ -144,8 +148,7 @@ def main() -> int:
         }
         for dom in DOMAINS:
             a = acts[dom][l].to(device)
-            entry["reconstruction"][dom] = {
-                str(k): reconstruction_fraction(a, D, k) for k in k_grid}
+            entry["reconstruction"][dom] = reconstruction_curve(a, D, k_grid)
         report["per_layer"][str(l)] = entry
         print(f"  layer {l:>2}: |J|_F={entry['frobenius_norm']:.3f} "
               f"eff_rank={entry['effective_rank']:.1f} "
