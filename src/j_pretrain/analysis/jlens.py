@@ -195,7 +195,7 @@ def jlens_dictionary(J: torch.Tensor, unembed: torch.Tensor,
 
 
 def nnls_projected_gradient(A: torch.Tensor, x: torch.Tensor,
-                            n_steps: int = 64) -> torch.Tensor:
+                            n_steps: int = 500) -> torch.Tensor:
     """min_{c >= 0} ||A^T c - x||^2 by projected gradient descent. ``A`` is [m, d].
 
     Split out from :func:`gradient_pursuit` so the step size can be tested directly
@@ -213,9 +213,18 @@ def nnls_projected_gradient(A: torch.Tensor, x: torch.Tensor,
     Ax = (A @ x).float()
     lmax = torch.linalg.eigvalsh(G.double()).max().clamp_min(1e-12).float()
     step = 1.0 / lmax
+    # FISTA (accelerated projected gradient): O(1/k^2) vs O(1/k). Plain PGD needs the
+    # step 1/lambda_max, which shrinks as the active set grows more coherent — so a fixed
+    # iteration budget silently under-converges at large k and reconstruction quality can
+    # DROP as atoms are added, which is impossible for a converged solve (NOTEBOOK I-12).
     coef = torch.zeros(A.shape[0], device=x.device)
+    y = coef.clone()
+    t = 1.0
     for _ in range(max(1, n_steps)):
-        coef = (coef - step * (G @ coef - Ax)).clamp_min(0.0)
+        nxt = (y - step * (G @ y - Ax)).clamp_min(0.0)
+        t_nxt = (1.0 + (1.0 + 4.0 * t * t) ** 0.5) / 2.0
+        y = nxt + ((t - 1.0) / t_nxt) * (nxt - coef)
+        coef, t = nxt, t_nxt
     # Guarantee the invariant the analysis depends on: the fit is never worse than c = 0.
     # c = 0 is always feasible, so a solution that loses to it means the iteration failed.
     # Enforcing it here means a numerical problem can degrade an estimate but can never
@@ -249,6 +258,7 @@ def gradient_pursuit(x: torch.Tensor, D: torch.Tensor, k: int = 25,
     residual = x.clone()
     idx: list[int] = []
     coef = torch.zeros(0, device=x.device)
+    best_resid, best_idx, best_coef = float(x.norm()), [], coef
     for _ in range(k):
         corr = D @ residual
         if idx:
@@ -260,10 +270,16 @@ def gradient_pursuit(x: torch.Tensor, D: torch.Tensor, k: int = 25,
         A = D[torch.tensor(idx, device=x.device)]          # [m, d]
         coef = nnls_projected_gradient(A, x, n_steps=n_steps)
         residual = x - A.t() @ coef
-    if not idx:
+        # Keep the best point on the pursuit path. Larger k explores a superset of the
+        # path, so returning the best-so-far makes explained variance monotone in k by
+        # construction, independent of how well any single refit converged.
+        r = float(residual.norm())
+        if r < best_resid:
+            best_resid, best_idx, best_coef = r, list(idx), coef.clone()
+    if not best_idx:
         return (torch.zeros(0, dtype=torch.long, device=x.device),
                 torch.zeros(0, device=x.device))
-    return torch.tensor(idx, dtype=torch.long, device=x.device), coef
+    return torch.tensor(best_idx, dtype=torch.long, device=x.device), best_coef
 
 
 def principal_angles(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:

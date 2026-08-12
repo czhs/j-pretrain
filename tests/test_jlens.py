@@ -202,6 +202,30 @@ def test_gradient_pursuit_explained_fraction_is_monotone_in_k():
         prev = got
 
 
+def test_monotone_in_k_on_ill_conditioned_overcomplete_dictionary():
+    """Regression for NOTEBOOK I-12, at a scale that resembles the real dictionary.
+
+    The real J-lens dictionary is 49152 x 576 and extremely coherent. At large k the
+    active set becomes ill-conditioned, lambda_max grows, the 1/lambda_max step shrinks,
+    and a fixed iteration budget silently under-converges — so explained variance can
+    *drop* as atoms are added, which is impossible for a converged solve. The small
+    16-dim coherent case above did not expose this; this one does.
+    """
+    torch.manual_seed(11)
+    d, n = 64, 4000                       # heavily overcomplete, like n_vocab >> d_model
+    D = torch.randn(n, d)
+    D = D / D.norm(dim=1, keepdim=True)
+    for trial in range(3):
+        x = torch.randn(d, generator=torch.Generator().manual_seed(trial))
+        prev = -1.0
+        for k in (1, 5, 10, 25, 50):
+            idx, coef = gradient_pursuit(x, D, k=k)
+            got = _explained(x, D, idx, coef)
+            assert got >= prev - 1e-6, (
+                f"trial {trial}: explained variance dropped at k={k}: {got:.4f} < {prev:.4f}")
+            prev = got
+
+
 def test_gradient_pursuit_respects_sparsity_budget():
     torch.manual_seed(1)
     D = torch.randn(50, D_MODEL)

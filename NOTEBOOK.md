@@ -294,6 +294,43 @@ an entitlement problem — given the account's Robo GPU balance sits at −222,3
 misread as "you are out of SUs and blocked". It is not: it is a cascade of the first error.
 `--mem=100G` submits fine. **ROBO is usable for this account.**
 
+### I-12 — Under-converged sparse fit produced a spurious "finding" *(caught, fixed, unverified)*
+The first full-GPU characterization of λ=0 θ_post produced an eye-catching pattern: MusicPile
+activations were reconstructed far *worse* than C4/ChemPile in mid-layers and far *better* in
+late layers (MP-vs-C4 ratio 0.98 → 0.32 → 0.20 → 0.92 → 1.62 across layers 4/10/14/20/25).
+
+That is exactly the kind of depth-dependent domain specialization the project is looking for,
+and **it would have been wrong to report it.** The same output contained an impossibility:
+
+```
+layer 10   k=25: 0.074  ->  k=50: 0.029     (dropped)
+layer 14   k=25: 0.102  ->  k=50: 0.021     (dropped)
+layer 20   k=10: 0.029  ->  k=25: 0.033     (non-monotone)
+```
+
+Explained variance **must** be non-decreasing in k — the extra coefficients can always be
+zero. Cause: as matching pursuit grows the active set it becomes more coherent, λ_max rises,
+the `1/λ_max` step shrinks, and a fixed 64-iteration budget silently under-converges. Larger k
+therefore gave a *worse* fit. Every number in that table is contaminated to an unknown degree,
+including the interesting ones.
+
+Fixes: FISTA acceleration (O(1/k²) vs O(1/k)) with the iteration budget raised to 500, plus
+`gradient_pursuit` now returning the **best point on the pursuit path**, which makes
+monotonicity in k hold by construction regardless of any single refit's convergence. New test
+`test_monotone_in_k_on_ill_conditioned_overcomplete_dictionary` uses a 4000×64 dictionary —
+the 16-dim coherent case from I-11 was too small to expose this. 15 tests pass.
+
+**Status: the characterization must be re-run; no J-space numbers are currently trustworthy.**
+The effective-rank result (96.7 → 110 → 144 → 197 → 297 across layers 4→25) is the one
+quantity that does *not* depend on the sparse solver — it comes from the singular values of
+J_l directly — so it is likely sound, but it should be re-confirmed alongside the rest.
+
+**Lesson, compounding I-11.** Both bugs were in the same solver, both produced plausible
+output, and neither was caught by the unit suite. What caught this one was an *internal
+consistency check the science itself implies* (monotonicity in k), not a test and not the
+plausibility of the result. Wherever a measurement has such an invariant, assert it in the
+analysis output — a result that looks interesting is not evidence that the code is right.
+
 ### I-11 — Sparse-coding step size diverged; unit tests could not see it *(fixed)*
 First run of `jlens_characterize.py` against the real λ=0 θ_post checkpoint returned
 **negative** reconstruction fractions — `c4=-0.417`, `chempile=-2.993` — i.e. the sparse
