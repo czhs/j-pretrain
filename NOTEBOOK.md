@@ -294,6 +294,42 @@ an entitlement problem — given the account's Robo GPU balance sits at −222,3
 misread as "you are out of SUs and blocked". It is not: it is a cascade of the first error.
 `--mem=100G` submits fine. **ROBO is usable for this account.**
 
+### I-13 — Massive activations make the naive variance metric unusable *(diagnosed, fixed)*
+With the solver fixed (I-12), the per-domain reconstruction numbers were *still* untrustworthy:
+across two seeds at 128 samples they moved up to **3.9×** (layer 14 ChemPile 0.027 ↔ 0.104;
+layer 20 MusicPile 0.039 ↔ 0.133), while layer 4 stayed put.
+
+Measured the residual-stream norm distribution rather than guessing:
+
+| layer | median ‖h‖ | max ‖h‖ | **top 1% share of total ‖h‖²** |
+|---:|---:|---:|---:|
+| 4 | 27.3 | 61.9 | **3.1%** |
+| 10 | 45.0 | **1812** | **88.4%** |
+| 14 | 60.9 | 1818 | 80.7% |
+| 20 | 97.0 | 1826 | 62.9% |
+| 25 | 164.4 | 1445 | 27.6% |
+
+This is the transformer **massive-activation / attention-sink** phenomenon. At layer 10 the
+top 1% of positions carry 88% of the squared norm with a 40× outlier over the median. The
+naive aggregate `1 - Σ‖x−recon‖²/Σ‖x‖²` is therefore ~88% decided by whether a 128-of-8192
+draw catches those few tokens — a lottery. The diagnosis predicts the instability pattern
+exactly: instability tracks the top-1% share down the table, and layer 4 (3.1%) was the one
+stable layer.
+
+Fix: report the **per-token explained fraction aggregated by median (with IQR)** as the
+headline, weighting every token equally. The norm-weighted aggregate is still recorded for
+comparability with the workspace paper's "% of variance", but flagged as outlier-dominated.
+
+**This matters well beyond the characterization.** Every M1–M5 measurement compares quantities
+across λ conditions. Had the λ sweep been run with the naive metric, the between-condition
+differences would have been dominated by which outlier tokens each sample happened to catch —
+producing confident, reproducible-looking, entirely spurious λ trends. The whole mechanism
+result would have been noise. Caught only because a *within-condition* stability check was run
+before any cross-condition comparison.
+
+**Standing rule for this project: no cross-λ comparison is reported without a same-condition,
+two-seed stability check on the same statistic first.**
+
 ### I-12 — Under-converged sparse fit produced a spurious "finding" *(caught, fixed, unverified)*
 The first full-GPU characterization of λ=0 θ_post produced an eye-catching pattern: MusicPile
 activations were reconstructed far *worse* than C4/ChemPile in mid-layers and far *better* in
