@@ -97,11 +97,15 @@ def main() -> int:
     ap.add_argument("--batch-size", type=int, default=4)
     ap.add_argument("--seed-chunk", type=int, default=32)
     ap.add_argument("--k-grid", default="1,5,10,25,50")
+    ap.add_argument("--n-recon-samples", type=int, default=32,
+                    help="activations sampled per (layer, domain) for the k-curve")
+    ap.add_argument("--seed", type=int, default=0, help="sampling seed (stability checks)")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     root = Path(args.artifact_root)
+    torch.manual_seed(args.seed)
 
     mc = load_model_config()
     model = build_model(mc).to(device)
@@ -128,6 +132,7 @@ def main() -> int:
     report: dict = {"checkpoint": str(args.checkpoint), "layers": layers,
                     "n_layers": n_layers, "d_model": model.config.hidden_size,
                     "seq_len": args.seq_len, "n_lens_windows": args.n_lens_windows,
+                    "n_recon_samples": args.n_recon_samples, "seed": args.seed,
                     "per_layer": {}}
 
     acts = {d: collect_activations(
@@ -148,7 +153,8 @@ def main() -> int:
         }
         for dom in DOMAINS:
             a = acts[dom][l].to(device)
-            entry["reconstruction"][dom] = reconstruction_curve(a, D, k_grid)
+            entry["reconstruction"][dom] = reconstruction_curve(
+                a, D, k_grid, n_samples=args.n_recon_samples)
         report["per_layer"][str(l)] = entry
         print(f"  layer {l:>2}: |J|_F={entry['frobenius_norm']:.3f} "
               f"eff_rank={entry['effective_rank']:.1f} "
