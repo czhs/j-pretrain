@@ -71,20 +71,38 @@ def effective_rank(sv: torch.Tensor) -> float:
 
 def reconstruction_curve(acts: torch.Tensor, D: torch.Tensor, k_grid: list,
                          n_samples: int = 32) -> dict:
-    """Explained variance at each k in ``k_grid``, from ONE pursuit pass per sample.
+    """Explained variance at each k, reported three ways.
 
-    Aggregated as 1 - sum_i||x_i - recon_i||^2 / sum_i||x_i||^2. Monotone in k because
-    :func:`pursuit_residual_path` returns a non-increasing best-residual path.
+    * ``median`` / ``p25`` / ``p75`` -- per-token explained fraction, aggregated robustly.
+      **This is the headline statistic.**
+    * ``norm_weighted`` -- the naive 1 - sum||x-recon||^2 / sum||x||^2.
+
+    The naive aggregate is unusable here. Residual-stream norms are extremely heavy-tailed
+    (transformer "massive activations"): at layer 10 the top 1% of positions carry 88% of
+    the total squared norm, with a 40x outlier over the median. The aggregate is therefore
+    decided by whether a finite sample happens to catch those few tokens, which made it
+    swing up to 3.9x between random seeds. Weighting every token equally removes that
+    dependence. See NOTEBOOK I-13.
     """
     idxs = torch.randperm(acts.shape[0])[:n_samples]
     k_max = max(k_grid)
+    per_token = torch.zeros(len(idxs), k_max)
     num = torch.zeros(k_max, device=acts.device)
     den = 0.0
-    for i in idxs:
+    for j, i in enumerate(idxs):
         x = acts[i]
-        num += pursuit_residual_path(x, D, k_max=k_max).pow(2)
-        den += float(x.pow(2).sum())
-    return {str(k): 1.0 - float(num[k - 1]) / max(den, 1e-30) for k in k_grid}
+        r2 = pursuit_residual_path(x, D, k_max=k_max).pow(2)
+        n2 = float(x.pow(2).sum())
+        per_token[j] = 1.0 - (r2 / max(n2, 1e-30)).cpu()
+        num += r2
+        den += n2
+    out = {}
+    for k in k_grid:
+        col = per_token[:, k - 1]
+        q = torch.quantile(col, torch.tensor([0.25, 0.5, 0.75]))
+        out[str(k)] = {"median": float(q[1]), "p25": float(q[0]), "p75": float(q[2]),
+                       "norm_weighted": 1.0 - float(num[k - 1]) / max(den, 1e-30)}
+    return out
 
 
 def main() -> int:
@@ -158,9 +176,11 @@ def main() -> int:
         report["per_layer"][str(l)] = entry
         print(f"  layer {l:>2}: |J|_F={entry['frobenius_norm']:.3f} "
               f"eff_rank={entry['effective_rank']:.1f} "
-              f"recon@k={k_grid[-1]} " +
-              " ".join(f"{d}={entry['reconstruction'][d][str(k_grid[-1])]:.3f}"
-                       for d in DOMAINS))
+              f"recon@k={k_grid[-1]} (median[IQR]) " +
+              " ".join("{}={:.3f}[{:.3f}-{:.3f}]".format(
+                  d, entry['reconstruction'][d][str(k_grid[-1])]['median'],
+                  entry['reconstruction'][d][str(k_grid[-1])]['p25'],
+                  entry['reconstruction'][d][str(k_grid[-1])]['p75']) for d in DOMAINS))
 
     if args.out:
         Path(args.out).write_text(json.dumps(report, indent=2, sort_keys=True))

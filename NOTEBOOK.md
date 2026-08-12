@@ -320,10 +320,29 @@ monotonicity in k hold by construction regardless of any single refit's converge
 `test_monotone_in_k_on_ill_conditioned_overcomplete_dictionary` uses a 4000×64 dictionary —
 the 16-dim coherent case from I-11 was too small to expose this. 15 tests pass.
 
-**Status: the characterization must be re-run; no J-space numbers are currently trustworthy.**
-The effective-rank result (96.7 → 110 → 144 → 197 → 297 across layers 4→25) is the one
-quantity that does *not* depend on the sparse solver — it comes from the singular values of
-J_l directly — so it is likely sound, but it should be re-confirmed alongside the rest.
+**Re-run outcome (2026-08-12, on `hshi-u1` / RTX 3060 8 GB, converged solver).** The
+prediction held on both counts:
+
+| layer | eff. rank (contaminated → converged) | MP/C4 recon ratio (contaminated → converged) |
+|---:|---|---|
+| 4 | 96.7 → 98.6 | 0.97 → 0.95 |
+| 10 | 110.0 → 110.8 | **0.32 → 2.52** |
+| 14 | 144.4 → 143.9 | **0.21 → 0.89** |
+| 20 | 197.1 → 196.0 | **0.92 → 3.76** |
+| 25 | 297.4 → 289.7 | 1.62 → 1.04 |
+
+- **Effective rank replicated to ~1%** across different hardware, different `seq_len`
+  (512 → 256) and a different solver — exactly as predicted for the one quantity that does
+  not route through the sparse fit. Real result: the J-lens map's effective rank grows ~3×
+  with depth, **99 → 290 of 576 dimensions**.
+- **The mid-layer MusicPile dip did not survive** — it inverted (0.32 → 2.52). It was
+  entirely a solver artifact. Reporting it would have been a fabricated mechanism story.
+
+**The converged per-domain numbers are ALSO not yet trustworthy** — the new ratios swing as
+violently as the ones they replaced (2.52 / 0.89 / 3.76 / 1.04), which is what estimation
+noise looks like at 32 activation samples and 64 windows for J. A stability check is running
+(128 samples, two independent seeds): agreement between seeds ⇒ real; divergence ⇒ noise,
+discard. **No per-domain J-space claim may be made until that returns.**
 
 **Lesson, compounding I-11.** Both bugs were in the same solver, both produced plausible
 output, and neither was caught by the unit suite. What caught this one was an *internal
